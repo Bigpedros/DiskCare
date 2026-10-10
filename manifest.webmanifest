@@ -1,0 +1,16 @@
+{
+  "name": "DiskCare",
+  "short_name": "DiskCare",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f7f1d8",
+  "theme_color": "#f2cf5b",
+  "icons": [
+    {
+      "src": "assets/diskcare-icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

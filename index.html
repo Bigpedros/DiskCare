@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#f4cf58">
+<title>DiskCare</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="assets/diskcare-icon.png" type="image/png">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="app-shell">
+<aside class="sidebar">
+  <div class="brand-wrap"><img src="assets/diskcare-icon.png" class="brand-icon" alt="DiskCare"><div><div class="brand">DiskCare</div><div class="brand-sub">Analizza • Decide • Protegge</div></div></div>
+  <div class="test-badge">TEST DESKTOP • E:</div>
+  <nav class="nav">
+    <button class="nav-item active" data-section="overview">Panoramica</button>
+    <button class="nav-item" data-section="duplicates">Duplicati file <span id="dupBadge">0</span></button>
+    <button class="nav-item" data-section="folders">Cartelle duplicate <span id="folderBadge">0</span></button>
+    <button class="nav-item" data-section="residuals">Residui sicuri <span id="residualBadge">0</span></button>
+    <button class="nav-item" data-section="review">Da valutare <span id="reviewBadge">0</span></button>
+    <button class="nav-item" data-section="protected">Non toccare <span id="protectBadge">0</span></button>
+    <button class="nav-item" data-section="quarantine">Quarantena <span id="qBadge">0</span></button>
+    <button class="nav-item" data-section="performance">Prestazioni</button>
+  </nav>
+  <div class="sidebar-foot"><span>Prototype 0.9</span><span>Nessuna cancellazione automatica</span></div>
+</aside>
+<main class="main">
+<section id="overview" class="view active-view">
+  <header class="topbar"><div class="title-with-logo"><img src="assets/diskcare-icon.png" class="hero-logo" alt=""><div><h1>DiskCare</h1><p>Riduce migliaia di file a poche decisioni comprensibili.</p></div></div><div class="top-actions"><button class="btn ghost" id="demoBtn">Dati demo</button><button class="btn primary" id="scanBtn">Analizza E: / cartella</button></div></header>
+  <section class="notice amber"><strong>Modalità test E:</strong> nel prototipo web scegli manualmente una cartella della SD. La futura app desktop potrà bloccare C: e D: e lavorare solo su E:.</section>
+  <section class="scan-hero"><div class="scan-title-row"><div><span class="eyebrow">STATO SCANSIONE</span><h2 id="phaseName">Pronto</h2></div><span class="profile-pill" id="profilePill">Profilo normale</span></div><p class="status" id="statusText">Scegli una cartella di test sulla SD E: per iniziare.</p><div class="progress-track"><div class="progress-bar" id="progressBar"></div></div><div class="scan-meta"><span><b id="metricPhase">0 / 7</b><small>fase</small></span><span><b id="metricSpeed">0</b><small>file/sec</small></span><span><b id="metricElapsed">00:00</b><small>trascorso</small></span><span><b id="metricEta">—</b><small>residuo</small></span></div></section>
+  <section class="summary-strip"><article><span>Spazio analizzato</span><strong id="spaceTotal">0 B</strong></article><article><span>Recupero stimato</span><strong id="recoverable">0 B</strong></article><article><span>Gruppi file doppi</span><strong id="dupGroupsCount">0</strong></article><article><span>Cartelle candidate</span><strong id="folderGroupsCount">0</strong></article></section>
+  <section class="decision-strip"><div class="decision-item keep"><b id="keepCount">0</b><span>Conserva</span></div><div class="decision-item good"><b id="safeCount">0</b><span>Pulizia consigliata</span></div><div class="decision-item warn"><b id="checkCount">0</b><span>Da verificare</span></div><div class="decision-item protect"><b id="protectCount">0</b><span>Non toccare</span></div></section>
+  <section class="panel"><div class="panel-head"><div><h2>Consigli DiskCare</h2><span>Età da sola non basta più per segnalare un file.</span></div><div class="filters"><select id="adviceFilter"><option value="all">Tutti</option><option value="residual">Residui sicuri</option><option value="quarantine">Pulizia consigliata</option><option value="check">Da verificare</option><option value="protect">Non toccare</option><option value="keep">Conserva</option></select><input id="searchInput" placeholder="Cerca"></div></div><div id="adviceWrap" class="table-wrap"><div class="empty-state"><strong>Nessun dato</strong><span>Avvia una scansione o carica la demo.</span></div></div></section>
+  <section class="quarantine-row" id="openQuarantine"><div class="q-icon">↩</div><div class="q-copy"><strong>Quarantena DiskCare</strong><span id="qCompactText">0 file • 0 B • tutto ripristinabile</span></div><button class="text-btn">Apri →</button></section>
+</section>
+<section id="duplicates" class="view">
+  <header class="topbar"><div><h1>Duplicati file</h1><p>Verifica identità, scegli la copia da conservare e sposta le altre in quarantena.</p></div><div class="top-actions"><button class="btn primary" id="verifyAllBtn">Verifica tutti i duplicati</button></div></header>
+  <section class="scan-hero compact"><div class="scan-title-row"><div><span class="eyebrow">VERIFICA GLOBALE</span><h2 id="verifyPhase">Non avviata</h2></div><span class="profile-pill" id="verifyPercent">0%</span></div><p class="status" id="verifyText">Puoi verificare tutti i gruppi in una sola operazione.</p><div class="progress-track"><div class="progress-bar" id="verifyProgress"></div></div></section>
+  <section class="notice"><strong>Sicurezza:</strong> la rimozione batch è disponibile solo per gruppi verificati come identici.</section>
+  <div id="duplicateGroupsWrap"><div class="empty-state"><strong>Nessun gruppo duplicato</strong></div></div>
+</section>
+<section id="folders" class="view">
+  <header class="topbar"><div><h1>Cartelle duplicate</h1><p>DiskCare risale nell’albero e prova a trasformare molti duplicati in una sola decisione.</p></div></header>
+  <section class="notice green"><strong>Nuovo:</strong> le sottocartelle simili vengono aggregate verso cartelle superiori quando il contenuto duplicato lo giustifica.</section>
+  <div id="folderGroupsWrap"><div class="empty-state"><strong>Nessuna cartella candidata</strong><span>Avvia una scansione o usa la demo.</span></div></div>
+</section>
+<section id="residuals" class="view">
+  <header class="topbar"><div><h1>Residui sicuri</h1><p>Metadati e residui di scarso valore separati dai file importanti.</p></div><div class="top-actions"><button class="btn primary" id="quarantineResidualsBtn">Quarantena tutti</button></div></header>
+  <section class="notice green"><strong>Esempi:</strong> .DS_Store, Thumbs.db, desktop.ini, file temporanei chiaramente riconoscibili. Sempre prima in quarantena.</section>
+  <section class="panel"><div id="residualWrap" class="table-wrap"><div class="empty-state"><strong>Nessun residuo rilevato</strong></div></div></section>
+</section>
+<section id="review" class="view"><header class="topbar"><div><h1>Da valutare</h1><p>Solo casi con più indizi: non più “vecchio = sospetto”.</p></div></header><section class="panel"><div id="reviewWrap" class="table-wrap"><div class="empty-state"><strong>Nessun dato</strong></div></div></section></section>
+<section id="protected" class="view"><header class="topbar"><div><h1>Non toccare</h1><p>File e cartelle di sistema o strutture che DiskCare protegge automaticamente.</p></div></header><section class="panel"><div id="protectedWrap" class="table-wrap"><div class="empty-state"><strong>Nessun elemento protetto rilevato</strong></div></div></section></section>
+<section id="quarantine" class="view">
+  <header class="topbar"><div><h1>Quarantena DiskCare</h1><p>Le operazioni restano reversibili.</p></div><div class="top-actions"><button class="btn ghost" id="restoreAllBtn">Ripristina tutto</button><button class="btn danger" id="purgeAllBtn">Elimina definitivamente</button></div></header>
+  <section class="summary-strip"><article><span>File</span><strong id="qCount">0</strong></article><article><span>Spazio</span><strong id="qSpace">0 B</strong></article><article><span>Operazioni</span><strong id="qOps">0</strong></article><article><span>Conservazione</span><strong>30 gg</strong></article></section>
+  <section class="panel"><div class="panel-head"><h2>File in quarantena</h2><input id="qSearch" placeholder="Cerca"></div><div id="qTableWrap" class="table-wrap"></div></section>
+</section>
+<section id="performance" class="view">
+  <header class="topbar">
+    <div><h1>Prestazioni</h1><p>Adatta il carico alle risorse del PC e salva la preferenza.</p></div>
+  </header>
+  <section class="performance-card">
+    <div class="performance-head">
+      <div>
+        <span class="eyebrow">PROFILO PRESTAZIONI</span>
+        <h2 id="performanceSavedLabel">Normale</h2>
+        <p id="performanceSavedText">La scelta salvata verrà riutilizzata alla prossima apertura.</p>
+      </div>
+      <span class="saved-state" id="performanceSavedState">Salvato</span>
+    </div>
+    <section class="profile-page">
+      <button class="profile-option" data-profile="light"><strong>Leggera</strong><span>4 GB RAM • priorità alla reattività</span></button>
+      <button class="profile-option selected" data-profile="normal"><strong>Normale</strong><span>8 GB+ • equilibrio</span></button>
+      <button class="profile-option" data-profile="fast"><strong>Massima</strong><span>16 GB+ • più parallelismo</span></button>
+    </section>
+    <div class="performance-actions">
+      <button class="btn primary" id="savePerformanceBtn">Salva impostazione</button>
+      <button class="btn ghost" id="resetPerformanceBtn">Ripristina Normale</button>
+    </div>
+  </section>
+</section>
+</main></div><script src="app.js"></script></body></html>
