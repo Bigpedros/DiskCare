@@ -43,3 +43,60 @@ body{background:linear-gradient(180deg,var(--page) 0%,var(--page-soft) 100%)}
 @media(max-width:1100px){.recovery-grid{grid-template-columns:repeat(2,1fr)}.folder-stats{grid-template-columns:repeat(3,1fr)}.opportunity-card{grid-template-columns:100px 1fr 110px}.opportunity-card .action-row{grid-column:2/4}}
 @media(max-width:900px){.decision-strip,.summary-strip{grid-template-columns:repeat(2,1fr)}.dup-file{grid-template-columns:30px 1fr}.dup-actions{grid-column:2}.profile-page,.transfer-grid{grid-template-columns:1fr}.folder-compare{grid-template-columns:1fr}.versus{display:none}}
 @media(max-width:760px){.app-shell{grid-template-columns:1fr}.sidebar{display:none}.main{padding:18px}.topbar{flex-direction:column;align-items:flex-start}.recovery-grid{grid-template-columns:1fr}.opportunity-card{grid-template-columns:1fr}.opp-space{text-align:left}.folder-stats{grid-template-columns:repeat(2,1fr)}}
+
+/* === UX GUIDATA 2026-10-10 === */
+:root{
+  --ux-card:#ffffff;
+  --ux-border:#d6dee7;
+  --ux-soft:#f5f8fb;
+  --ux-blue:#2f7fc8;
+  --ux-ink:#173552;
+  --ux-muted:#667f96;
+}
+.sidebar{padding-top:14px}
+.nav{gap:6px}
+.advanced-nav{margin-top:10px;border-top:1px solid #bed3e5;padding-top:10px}
+.advanced-nav summary{cursor:pointer;list-style:none;padding:9px 11px;border-radius:9px;color:#58738c;font-size:12px;font-weight:800}
+.advanced-nav summary::-webkit-details-marker{display:none}
+.advanced-nav summary:after{content:"⌄";float:right}
+.advanced-nav[open] summary:after{content:"⌃"}
+.advanced-nav-list{display:flex;flex-direction:column;gap:3px;margin-top:4px}
+.advanced-nav-list .nav-item{font-size:12px;padding:8px 11px}
+.home-topbar{margin-bottom:14px}
+.home-eyebrow{color:#557c9f}
+.welcome-safety{display:flex;align-items:center;gap:12px;background:#eef9f4;border:1px solid #9ed7bc;border-radius:14px;padding:13px 15px;margin-bottom:14px;box-shadow:var(--shadow)}
+.welcome-safety .safety-icon{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:#2f9d70;color:#fff;font-weight:900}
+.welcome-safety strong,.welcome-safety span{display:block}
+.welcome-safety span{margin-top:3px;color:#547064;font-size:12px}
+.journey-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:16px}
+.journey-card{position:relative;background:var(--ux-card);border:1px solid var(--ux-border);border-radius:18px;padding:20px;box-shadow:var(--shadow);min-height:225px;display:flex;flex-direction:column}
+.journey-card.journey-primary{border-color:#83bdf0;background:linear-gradient(180deg,#f8fcff,#eef7ff)}
+.journey-number{position:absolute;top:16px;right:16px;width:28px;height:28px;border-radius:50%;background:#edf3f8;color:#6a8298;display:grid;place-items:center;font-size:12px;font-weight:800}
+.journey-icon{width:52px;height:52px;border-radius:15px;background:#dceeff;color:#1c639f;display:grid;place-items:center;font-size:25px;font-weight:800;margin-bottom:14px}
+.journey-card h2{margin:0;color:var(--ux-ink);font-size:20px}
+.journey-card p{color:var(--ux-muted);font-size:13px;line-height:1.5;flex:1}
+.journey-btn{align-self:flex-start}
+.guided-flow{background:#fffaf0;border:1px solid #d8cfaa;border-radius:16px;padding:17px;margin-bottom:14px;box-shadow:var(--shadow)}
+.guided-head,.result-title{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:14px}
+.guided-head h2,.result-title h2{margin:4px 0 0;color:#173552;font-size:18px}
+.guided-note{font-size:11px;border:1px solid #b8d9ca;background:#edf8f3;color:#2d6b52;border-radius:999px;padding:6px 9px;font-weight:700}
+.steps-row{display:grid;grid-template-columns:1fr auto 1fr auto 1fr auto 1fr;align-items:stretch;gap:8px}
+.step-card{background:#fff;border:1px solid #d8e1e9;border-radius:12px;padding:12px}
+.step-card b{display:grid;place-items:center;width:26px;height:26px;border-radius:50%;background:#dceeff;color:#245f91;margin-bottom:8px}
+.step-card span{display:block;font-weight:800;color:#173552}
+.step-card small{display:block;color:#6c8296;line-height:1.4;margin-top:4px}
+.step-arrow{display:grid;place-items:center;color:#8aa5bc;font-size:20px}
+.guided-status{margin-bottom:16px}
+.result-overview{margin-bottom:14px}
+.simple-recovery{margin-bottom:10px}
+.calm-panel{background:linear-gradient(180deg,#17304f,#10233f)}
+#opportunities .topbar,#duplicates .topbar,#folders .topbar,#transfer .topbar{margin-bottom:12px}
+#opportunities:before,#duplicates:before,#folders:before,#transfer:before{
+  display:block;margin-bottom:12px;padding:10px 13px;border-radius:12px;background:#eef6fc;border:1px solid #bed7ea;color:#315c7d;font-size:12px;font-weight:600
+}
+#opportunities:before{content:"Percorso consigliato: seleziona prima le voci già verificate e a rischio basso. Le altre possono aspettare."}
+#duplicates:before{content:"Percorso consigliato: verifica → scegli la copia da conservare → solo dopo valuta la quarantena."}
+#folders:before{content:"Percorso consigliato: confronta le differenze prima di copiare. I conflitti non vengono mai sovrascritti in silenzio."}
+#transfer:before{content:"Percorso consigliato: scegli origine → scegli destinazione → copia con verifica SHA-256. Sposta solo quando la verifica è riuscita."}
+@media(max-width:1100px){.journey-grid{grid-template-columns:1fr}.journey-card{min-height:auto}.steps-row{grid-template-columns:1fr}.step-arrow{transform:rotate(90deg)}}
+@media(max-width:760px){.guided-head,.result-title{flex-direction:column}.welcome-safety{align-items:flex-start}}
