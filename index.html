@@ -9,68 +9,195 @@
 <link rel="icon" href="assets/diskcare-icon.png" type="image/png">
 <link rel="stylesheet" href="styles.css">
 </head>
-<body>
+<body data-theme="payblue">
 <div class="app-shell">
 <aside class="sidebar">
   <div class="brand-wrap"><img src="assets/diskcare-icon.png" class="brand-icon" alt="DiskCare"><div><div class="brand">DiskCare</div><div class="brand-sub">Analizza • Recupera • Protegge</div></div></div>
   <div class="test-badge">v1.0 • PWA TEST</div>
   <nav class="nav">
-    <button class="nav-item active" data-section="overview">Panoramica</button>
-    <button class="nav-item" data-section="opportunities">Spazio recuperabile <span id="oppBadge">0</span></button>
-    <button class="nav-item" data-section="duplicates">Duplicati file <span id="dupBadge">0</span></button>
-    <button class="nav-item" data-section="folders">Cartelle duplicate <span id="folderBadge">0</span></button>
-    <button class="nav-item" data-section="transfer">Copia / Sposta</button>
-    <button class="nav-item" data-section="residuals">Residui sicuri <span id="residualBadge">0</span></button>
-    <button class="nav-item" data-section="review">Da valutare <span id="reviewBadge">0</span></button>
-    <button class="nav-item" data-section="protected">Non toccare <span id="protectBadge">0</span></button>
+    <button class="nav-item active" data-section="overview">Home</button>
+    <button class="nav-item" data-section="opportunities">Recupera spazio <span id="oppBadge">0</span></button>
+    <button class="nav-item" data-section="duplicates">Duplicati <span id="dupBadge">0</span></button>
+    <button class="nav-item" data-section="transfer">Copia e unisci</button>
     <button class="nav-item" data-section="quarantine">Quarantena <span id="qBadge">0</span></button>
-    <button class="nav-item" data-section="performance">Prestazioni</button>
+    <button class="nav-item" data-section="settings">Impostazioni</button>
+    <details class="advanced-nav">
+      <summary>Strumenti avanzati</summary>
+      <div class="advanced-nav-list">
+        <button class="nav-item" data-section="folders">Cartelle duplicate <span id="folderBadge">0</span></button>
+        <button class="nav-item" data-section="residuals">Residui sicuri <span id="residualBadge">0</span></button>
+        <button class="nav-item" data-section="review">Da valutare <span id="reviewBadge">0</span></button>
+        <button class="nav-item" data-section="protected">Non toccare <span id="protectBadge">0</span></button>
+      </div>
+    </details>
   </nav>
   <div class="sidebar-foot"><span>Prototype 1.0</span><span>Nessuna cancellazione automatica</span></div>
 </aside>
 
 <main class="main">
 <section id="overview" class="view active-view">
-  <header class="topbar"><div class="title-with-logo"><img src="assets/diskcare-icon.png" class="hero-logo" alt=""><div><h1>DiskCare</h1><p>Prima lo spazio recuperabile, poi il numero di file.</p></div></div><div class="top-actions"><button class="btn ghost" id="demoBtn">Dati demo reali</button><button class="btn primary" id="scanBtn">Analizza cartella</button></div></header>
-  <section class="notice amber"><strong>Versione PWA:</strong> DiskCare può lavorare realmente sui percorsi che autorizzi con i selettori di file/cartelle. L'accesso automatico a interi dischi richiederà la futura build desktop.</section>
+  <header class="topbar home-topbar">
+    <div class="title-with-logo"><img src="assets/diskcare-icon.png" class="hero-logo" alt=""><div><span class="eyebrow home-eyebrow">DISKCARE • PULIZIA GUIDATA</span><h1>Cosa vuoi fare?</h1><p>Scegli un obiettivo. DiskCare ti guiderà senza cancellare nulla in silenzio.</p></div></div>
+    <div class="top-actions"><button class="btn ghost" id="demoBtn">Prova con dati demo</button></div>
+  </header>
 
-  <section class="scan-hero"><div class="scan-title-row"><div><span class="eyebrow">STATO SCANSIONE</span><h2 id="phaseName">Pronto</h2></div><span class="profile-pill" id="profilePill">Profilo normale</span></div><p class="status" id="statusText">Scegli una cartella da analizzare oppure carica la demo.</p><div class="progress-track"><div class="progress-bar" id="progressBar"></div></div><div class="scan-meta"><span><b id="metricPhase">0 / 7</b><small>fase</small></span><span><b id="metricSpeed">0</b><small>file/sec</small></span><span><b id="metricElapsed">00:00</b><small>trascorso</small></span><span><b id="metricEta">—</b><small>residuo</small></span></div></section>
-
-  <section class="recovery-grid">
-    <article class="recovery-card verified"><span>Recuperabile verificato</span><strong id="verifiedRecover">0 B</strong><small>Identità o sicurezza già confermata</small></article>
-    <article class="recovery-card potential"><span>Potenzialmente recuperabile</span><strong id="potentialRecover">0 B</strong><small>Richiede verifica o decisione</small></article>
-    <article class="recovery-card selected"><span>Selezionato per pulizia</span><strong id="selectedRecover">0 B</strong><small>Somma delle opportunità selezionate</small></article>
-    <article class="recovery-card total"><span>Spazio analizzato</span><strong id="spaceTotal">0 B</strong><small>Totale file indicizzati</small></article>
+  <section class="welcome-safety">
+    <div class="safety-icon">✓</div>
+    <div><strong>Prima la sicurezza.</strong><span>DiskCare analizza, spiega e verifica. Gli elementi destinati alla pulizia passano prima dalla Quarantena.</span></div>
   </section>
 
-  <section class="decision-strip"><div class="decision-item keep"><b id="keepCount">0</b><span>Conserva</span></div><div class="decision-item good"><b id="safeCount">0</b><span>Pulizia consigliata</span></div><div class="decision-item warn"><b id="checkCount">0</b><span>Da verificare</span></div><div class="decision-item protect"><b id="protectCount">0</b><span>Non toccare</span></div></section>
+  <section class="journey-grid">
+    <article class="journey-card journey-primary">
+      <div class="journey-number">1</div>
+      <div class="journey-icon">◔</div>
+      <h2>Recupera spazio</h2>
+      <p>Trova cache, residui e duplicati senza dover interpretare liste tecniche.</p>
+      <button class="btn primary journey-btn" id="scanBtn">Inizia analisi guidata</button>
+    </article>
+    <article class="journey-card">
+      <div class="journey-number">2</div>
+      <div class="journey-icon">≡</div>
+      <h2>Sistema duplicati</h2>
+      <p>Verifica quali copie sono davvero identiche e scegli con calma quale conservare.</p>
+      <button class="btn ghost journey-btn" onclick="document.querySelector('[data-section=&quot;duplicates&quot;]').click()">Controlla duplicati</button>
+    </article>
+    <article class="journey-card">
+      <div class="journey-number">3</div>
+      <div class="journey-icon">⇄</div>
+      <h2>Copia o unisci cartelle</h2>
+      <p>Consolida contenuti tra percorsi o dischi diversi con verifica dopo la copia.</p>
+      <button class="btn ghost journey-btn" onclick="document.querySelector('[data-section=&quot;transfer&quot;]').click()">Copia o unisci</button>
+    </article>
+  </section>
 
-  <section class="panel"><div class="panel-head"><div><h2>Prime opportunità per spazio recuperabile</h2><span>Niente doppi conteggi: una cartella duplicata prevale sui singoli file contenuti.</span></div><button class="btn ghost" id="openOppBtn">Vedi tutte</button></div><div id="topOpportunities" class="opportunity-list"><div class="empty-state"><strong>Nessun dato</strong><span>Avvia una scansione o carica la demo.</span></div></div></section>
+  <section class="guided-flow">
+    <div class="guided-head"><div><span class="eyebrow">COME FUNZIONA</span><h2>Un percorso semplice, sempre reversibile</h2></div><span class="guided-note">Nessuna cancellazione automatica</span></div>
+    <div class="steps-row">
+      <div class="step-card"><b>1</b><span>Analizza</span><small>Scegli il percorso da controllare.</small></div>
+      <div class="step-arrow">→</div>
+      <div class="step-card"><b>2</b><span>Controlla</span><small>DiskCare separa sicuri, dubbi e protetti.</small></div>
+      <div class="step-arrow">→</div>
+      <div class="step-card"><b>3</b><span>Scegli</span><small>Decidi solo dove serve davvero.</small></div>
+      <div class="step-arrow">→</div>
+      <div class="step-card"><b>4</b><span>Quarantena</span><small>Recupera spazio mantenendo una via di ritorno.</small></div>
+    </div>
+  </section>
+
+  <section class="scan-hero compact guided-status">
+    <div class="scan-title-row"><div><span class="eyebrow">STATO ANALISI</span><h2 id="phaseName">Pronto per iniziare</h2></div><span class="profile-pill" id="profilePill">Profilo normale</span></div>
+    <p class="status" id="statusText">Premi “Inizia analisi guidata” oppure usa i dati demo per vedere il flusso.</p>
+    <div class="progress-track"><div class="progress-bar" id="progressBar"></div></div>
+    <div class="scan-meta"><span><b id="metricPhase">0 / 7</b><small>fase</small></span><span><b id="metricSpeed">0</b><small>file/sec</small></span><span><b id="metricElapsed">00:00</b><small>trascorso</small></span><span><b id="metricEta">—</b><small>residuo</small></span></div>
+  </section>
+
+  <section class="result-overview">
+    <div class="result-title"><div><span class="eyebrow">RISULTATO</span><h2>Quando l'analisi termina, parti da qui</h2></div><button class="btn ghost" id="openOppBtn">Apri risultati</button></div>
+    <section class="recovery-grid simple-recovery">
+      <article class="recovery-card verified"><span>Sicuro / verificato</span><strong id="verifiedRecover">0 B</strong><small>Elementi già confermati</small></article>
+      <article class="recovery-card potential"><span>Da controllare</span><strong id="potentialRecover">0 B</strong><small>Serve una verifica o una scelta</small></article>
+      <article class="recovery-card selected"><span>Hai selezionato</span><strong id="selectedRecover">0 B</strong><small>Spazio pronto per la fase finale</small></article>
+      <article class="recovery-card total"><span>Spazio analizzato</span><strong id="spaceTotal">0 B</strong><small>Totale indicizzato</small></article>
+    </section>
+    <section class="decision-strip">
+      <div class="decision-item keep"><b id="keepCount">0</b><span>Da conservare</span></div>
+      <div class="decision-item good"><b id="safeCount">0</b><span>Pulizia consigliata</span></div>
+      <div class="decision-item warn"><b id="checkCount">0</b><span>Richiedono scelta</span></div>
+      <div class="decision-item protect"><b id="protectCount">0</b><span>Protetti</span></div>
+    </section>
+    <section class="panel calm-panel"><div class="panel-head"><div><h2>Prime opportunità</h2><span>Mostriamo prima ciò che è più utile e meno rischioso.</span></div></div><div id="topOpportunities" class="opportunity-list"><div class="empty-state"><strong>Nessun dato</strong><span>Avvia una scansione o carica la demo.</span></div></div></section>
+  </section>
 
   <section class="quarantine-row" id="openQuarantine"><div class="q-icon">↩</div><div class="q-copy"><strong>Quarantena DiskCare</strong><span id="qCompactText">0 file • 0 B • tutto ripristinabile</span></div><button class="text-btn">Apri →</button></section>
 </section>
 
 <section id="opportunities" class="view">
-  <header class="topbar"><div><h1>Spazio recuperabile</h1><p>Opportunità ordinate per beneficio reale e livello di rischio.</p></div><div class="top-actions"><button class="btn primary" id="selectSafeBtn">Seleziona sicure</button><button class="btn ghost" id="clearSelectionBtn">Azzera selezione</button></div></header>
-  <section class="summary-strip"><article><span>Verificato</span><strong id="oppVerified">0 B</strong></article><article><span>Potenziale</span><strong id="oppPotential">0 B</strong></article><article><span>Selezionato</span><strong id="oppSelected">0 B</strong></article><article><span>Opportunità</span><strong id="oppCount">0</strong></article></section>
-  <div id="opportunityWrap"><div class="empty-state"><strong>Nessuna opportunità</strong></div></div>
+  <header class="topbar">
+    <div>
+      <span class="eyebrow">IL TUO DISCO, SPIEGATO SEMPLICEMENTE</span>
+      <h1>Recupera spazio</h1>
+      <p>DiskCare ha già organizzato i risultati per te. Parti dal riepilogo e apri i dettagli solo se vuoi approfondire.</p>
+    </div>
+  </header>
+
+  <section class="plain-explainer">
+    <div class="plain-explainer-icon">i</div>
+    <div><strong>Non devi capire termini tecnici.</strong><span>Qui vedi quanti file e cartelle sono stati trovati, dove ci sono copie e quanto spazio puoi recuperare.</span></div>
+  </section>
+
+  <section class="disk-inventory" aria-label="Riepilogo del disco">
+    <article><span>File analizzati</span><strong id="inventoryFiles">0</strong><small>Tutti i file controllati da DiskCare</small></article>
+    <article><span>Cartelle trovate</span><strong id="inventoryFolders">0</strong><small>Cartelle che contengono i file analizzati</small></article>
+    <article><span>Copie duplicate</span><strong id="inventoryDuplicates">0</strong><small>Copie in più che potrebbero non servire</small></article>
+    <article class="inventory-recover"><span>Spazio recuperabile</span><strong id="inventoryRecover">0 B</strong><small>Stima complessiva prima delle tue scelte</small></article>
+  </section>
+
+  <section class="plain-section-head">
+    <div><span class="eyebrow">COSA HA TROVATO DISKCARE</span><h2>Da dove vuoi iniziare?</h2><p>Ogni gruppo raccoglie elementi dello stesso tipo. Non devi scorrere centinaia di file uno per uno.</p></div>
+  </section>
+
+  <section class="cleanup-categories" id="cleanupCategories">
+    <article class="cleanup-category">
+      <div class="category-icon">≡</div>
+      <div class="category-copy"><h3>File duplicati</h3><p>Copie dello stesso file trovate in punti diversi del disco.</p><div class="category-meta"><strong id="catDupCount">0</strong><span>copie in più</span><b id="catDupBytes">0 B</b></div></div>
+      <button class="btn ghost" onclick="document.querySelector('[data-section=&quot;duplicates&quot;]').click()">Controlla duplicati</button>
+    </article>
+
+    <article class="cleanup-category">
+      <div class="category-icon">▣</div>
+      <div class="category-copy"><h3>Cartelle uguali o molto simili</h3><p>Cartelle che contengono molti degli stessi file e possono essere consolidate.</p><div class="category-meta"><strong id="catFolderCount">0</strong><span>gruppi di cartelle</span><b id="catFolderBytes">0 B</b></div></div>
+      <button class="btn ghost" onclick="document.querySelector('[data-section=&quot;folders&quot;]').click()">Confronta cartelle</button>
+    </article>
+
+    <article class="cleanup-category">
+      <div class="category-icon">↻</div>
+      <div class="category-copy"><h3>File temporanei e ricreabili</h3><p>Anteprime e file di lavoro che i programmi possono normalmente ricreare.</p><div class="category-meta"><strong id="catCacheCount">0</strong><span>elementi</span><b id="catCacheBytes">0 B</b></div></div>
+      <button class="btn ghost" onclick="document.querySelector('[data-section=&quot;review&quot;]').click()">Controlla</button>
+    </article>
+
+    <article class="cleanup-category cleanup-safe">
+      <div class="category-icon">✓</div>
+      <div class="category-copy"><h3>Pulizia già riconosciuta come sicura</h3><p>Piccoli residui e file inutili che DiskCare ha già classificato con rischio basso.</p><div class="category-meta"><strong id="catSafeCount">0</strong><span>elementi</span><b id="catSafeBytes">0 B</b></div></div>
+      <button class="btn primary" id="selectSafeBtn">Seleziona sicuri</button>
+    </article>
+
+    <article class="cleanup-category cleanup-review">
+      <div class="category-icon">?</div>
+      <div class="category-copy"><h3>Da decidere insieme</h3><p>Elementi che potrebbero essere inutili, ma che DiskCare non vuole scegliere al posto tuo.</p><div class="category-meta"><strong id="catReviewCount">0</strong><span>elementi</span><b id="catReviewBytes">0 B</b></div></div>
+      <button class="btn ghost" onclick="document.querySelector('[data-section=&quot;review&quot;]').click()">Fammi vedere</button>
+    </article>
+  </section>
+
+  <section class="selection-summary">
+    <div><span>Hai selezionato</span><strong id="oppSelected">0 B</strong><small>Nulla viene eliminato direttamente: prima passa dalla Quarantena.</small></div>
+    <button class="btn ghost" id="clearSelectionBtn">Azzera selezione</button>
+  </section>
+
+  <details class="technical-details">
+    <summary>Mostra dettagli dei singoli file</summary>
+    <div class="technical-help">Questa parte è facoltativa. Serve solo se vuoi vedere nomi, percorsi e classificazioni uno per uno.</div>
+    <div id="opportunityWrap"><div class="empty-state"><strong>Nessun dettaglio disponibile</strong></div></div>
+  </details>
+
+  <div class="hidden-compat" aria-hidden="true">
+    <span id="oppVerified">0 B</span><span id="oppPotential">0 B</span><span id="oppCount">0</span>
+  </div>
 </section>
 
 <section id="duplicates" class="view">
-  <header class="topbar"><div><h1>Duplicati file</h1><p>Verifica SHA-256, scegli la copia da conservare e quantifica lo spazio liberabile.</p></div><div class="top-actions"><button class="btn primary" id="verifyAllBtn">Verifica tutti i duplicati</button></div></header>
+  <header class="topbar"><div><h1>Duplicati</h1><p>1. Verifica che siano identici → 2. scegli cosa conservare → 3. manda l'altra copia in quarantena.</p></div><div class="top-actions"><button class="btn primary" id="verifyAllBtn">Verifica tutti i duplicati</button></div></header>
   <section class="scan-hero compact"><div class="scan-title-row"><div><span class="eyebrow">VERIFICA GLOBALE</span><h2 id="verifyPhase">Non avviata</h2></div><span class="profile-pill" id="verifyPercent">0%</span></div><p class="status" id="verifyText">Puoi verificare tutti i gruppi in una sola operazione.</p><div class="progress-track"><div class="progress-bar" id="verifyProgress"></div></div></section>
   <section class="notice"><strong>Sicurezza:</strong> la rimozione batch è disponibile solo per gruppi verificati come identici.</section>
   <div id="duplicateGroupsWrap"><div class="empty-state"><strong>Nessun gruppo duplicato</strong></div></div>
 </section>
 
 <section id="folders" class="view">
-  <header class="topbar"><div><h1>Cartelle duplicate</h1><p>Confronta, consolida e verifica prima di liberare spazio.</p></div></header>
+  <header class="topbar"><div><h1>Cartelle simili</h1><p>DiskCare mostra prima le differenze; l'unione avviene solo dopo una tua scelta.</p></div></header>
   <section class="notice green"><strong>Consolidamento:</strong> puoi copiare i file mancanti A→B o B→A. I conflitti non vengono sovrascritti automaticamente.</section>
   <div id="folderGroupsWrap"><div class="empty-state"><strong>Nessuna cartella candidata</strong></div></div>
 </section>
 
 <section id="transfer" class="view">
-  <header class="topbar"><div><h1>Copia / Sposta</h1><p>Trasferisci file o intere cartelle tra percorsi autorizzati, anche senza duplicati.</p></div></header>
+  <header class="topbar"><div><h1>Copia o unisci</h1><p>Scegli origine e destinazione. DiskCare verifica la copia prima di toccare l'origine.</p></div></header>
   <section class="transfer-grid">
     <article class="transfer-card">
       <span class="eyebrow">ORIGINE</span>
@@ -114,11 +241,45 @@
   <section class="panel"><div class="panel-head"><h2>File in quarantena</h2><input id="qSearch" placeholder="Cerca"></div><div id="qTableWrap" class="table-wrap"></div></section>
 </section>
 
-<section id="performance" class="view">
-  <header class="topbar"><div><h1>Prestazioni</h1><p>Adatta il carico alle risorse del PC e salva la preferenza.</p></div></header>
-  <section class="performance-card"><div class="performance-head"><div><span class="eyebrow">PROFILO PRESTAZIONI</span><h2 id="performanceSavedLabel">Normale</h2><p id="performanceSavedText">La scelta salvata verrà riutilizzata alla prossima apertura.</p></div><span class="saved-state" id="performanceSavedState">Salvato</span></div>
-    <section class="profile-page"><button class="profile-option" data-profile="light"><strong>Leggera</strong><span>4 GB RAM • priorità alla reattività</span></button><button class="profile-option selected" data-profile="normal"><strong>Normale</strong><span>8 GB+ • equilibrio</span></button><button class="profile-option" data-profile="fast"><strong>Massima</strong><span>16 GB+ • più parallelismo</span></button></section>
-    <div class="performance-actions"><button class="btn primary" id="savePerformanceBtn">Salva impostazione</button><button class="btn ghost" id="resetPerformanceBtn">Ripristina Normale</button></div>
+<section id="settings" class="view">
+  <header class="topbar"><div><h1>Impostazioni</h1><p>Personalizza l'aspetto di DiskCare e scegli quante risorse usare durante le analisi.</p></div></header>
+
+  <section class="settings-stack">
+    <article class="settings-card">
+      <div class="settings-card-head">
+        <div><span class="eyebrow">ASPETTO</span><h2>Tema</h2><p>Scegli la combinazione che trovi più riposante. La scelta viene salvata automaticamente.</p></div>
+        <span class="saved-state" id="themeSavedState">Salvato</span>
+      </div>
+      <div class="theme-grid">
+        <button class="theme-option" data-theme-choice="payblue"><span class="theme-preview payblue"><i></i><i></i><i></i></span><strong>Pay Blue</strong><small>Predefinito • stile PayFacile</small></button>
+        <button class="theme-option" data-theme-choice="dark"><span class="theme-preview dark"><i></i><i></i><i></i></span><strong>Dark</strong><small>Scuro e riposante</small></button>
+        <button class="theme-option" data-theme-choice="soft"><span class="theme-preview soft"><i></i><i></i><i></i></span><strong>Soft Light</strong><small>Chiaro, ma meno luminoso</small></button>
+        <button class="theme-option" data-theme-choice="graphite"><span class="theme-preview graphite"><i></i><i></i><i></i></span><strong>Graphite</strong><small>Neutro e tecnico</small></button>
+        <button class="theme-option" data-theme-choice="ocean"><span class="theme-preview ocean"><i></i><i></i><i></i></span><strong>Ocean</strong><small>Blu-verde morbido</small></button>
+        <button class="theme-option" data-theme-choice="warm"><span class="theme-preview warm"><i></i><i></i><i></i></span><strong>Warm Light</strong><small>Il tema chiaro originale</small></button>
+      </div>
+    </article>
+
+    <article class="settings-card">
+      <div class="settings-card-head">
+        <div><span class="eyebrow">PRESTAZIONI</span><h2>Velocità di lavoro</h2><p>Più alto è il profilo, più operazioni DiskCare può elaborare in parallelo.</p></div>
+        <span class="saved-state" id="performanceSavedState">Salvato</span>
+      </div>
+
+      <section class="profile-page settings-profiles">
+        <button class="profile-option" data-profile="light"><strong>Minimo</strong><span>4 GB RAM • priorità alla reattività del PC</span></button>
+        <button class="profile-option selected" data-profile="normal"><strong>Medio</strong><span>8 GB RAM • equilibrio consigliato</span></button>
+        <button class="profile-option" data-profile="fast"><strong>Massimo</strong><span>Oltre 8 GB RAM • più parallelismo</span></button>
+      </section>
+
+      <div class="settings-current">
+        <span>Profilo selezionato</span>
+        <strong id="performanceSavedLabel">Medio</strong>
+        <p id="performanceSavedText">La scelta salvata verrà riutilizzata alla prossima apertura.</p>
+      </div>
+
+      <div class="performance-actions"><button class="btn primary" id="savePerformanceBtn">Salva prestazioni</button><button class="btn ghost" id="resetPerformanceBtn">Ripristina Medio</button></div>
+    </article>
   </section>
 </section>
 
