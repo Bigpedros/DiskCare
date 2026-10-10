@@ -27,7 +27,7 @@
         <button class="nav-item" data-section="folders">Cartelle duplicate <span id="folderBadge">0</span></button>
         <button class="nav-item" data-section="residuals">Residui sicuri <span id="residualBadge">0</span></button>
         <button class="nav-item" data-section="review">Da valutare <span id="reviewBadge">0</span></button>
-        <button class="nav-item" data-section="protected">Non toccare <span id="protectBadge">0</span></button>
+        <button class="nav-item" data-section="protected">Aree di sistema <span id="protectBadge">0</span></button>
       </div>
     </details>
   </nav>
@@ -326,7 +326,7 @@
 
 <section id="review" class="view"><header class="topbar"><div><h1>Da valutare</h1><p>File grandi, installer o archivi che meritano una decisione, non una cancellazione automatica.</p></div></header><section class="panel"><div id="reviewWrap" class="table-wrap"><div class="empty-state"><strong>Nessun dato</strong></div></div></section></section>
 
-<section id="protected" class="view"><header class="topbar"><div><h1>Non toccare</h1><p>File e percorsi di sistema che DiskCare protegge automaticamente.</p></div></header><section class="panel"><div id="protectedWrap" class="table-wrap"><div class="empty-state"><strong>Nessun elemento protetto rilevato</strong></div></div></section></section>
+<section id="protected" class="view"><header class="topbar"><div><h1>Aree di sistema</h1><p>DiskCare le analizza e le mostra, ma le segnala come delicate. Nella PWA non vengono escluse dalla scansione solo perché appartengono a C:, D: o a un percorso di sistema.</p></div></header><section class="notice"><strong>Attenzione:</strong> questa è una segnalazione, non un blocco. Il browser decide quali cartelle puoi autorizzare.</section><section class="panel"><div id="protectedWrap" class="table-wrap"><div class="empty-state"><strong>Nessuna area di sistema rilevata</strong></div></div></section></section>
 
 <section id="quarantine" class="view">
   <header class="topbar"><div><h1>Quarantena DiskCare</h1><p>Per liberare davvero spazio, la quarantena deve trovarsi su un disco diverso da quello che stai pulendo.</p></div><div class="top-actions"><button class="btn ghost" id="restoreAllBtn">Ripristina tutto</button><button class="btn danger" id="purgeAllBtn">Elimina definitivamente</button></div></header>
