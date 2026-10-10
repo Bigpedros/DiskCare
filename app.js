@@ -1,6 +1,6 @@
 const state={
   files:[],duplicateGroups:[],folderGroups:[],opportunities:[],selectedOps:new Set(),
-  profile:"normal",pendingProfile:"normal",quarantine:[],rootName:"",rootHandle:null,verifyRunning:false,
+  profile:"normal",pendingProfile:"normal",quarantine:[],quarantineDestination:{handle:null,name:"",mode:"unknown"},quarantineExcludedPaths:new Set(),rootName:"",rootHandle:null,verifyRunning:false,
   transfer:{sourceType:null,fileHandles:[],folderHandle:null,destHandle:null},compare:{a:null,b:null,mapA:null,mapB:null,onlyA:[],onlyB:[],same:[],conflicts:[]}
 };
 const $=id=>document.getElementById(id);
@@ -53,7 +53,7 @@ function advice(f){
 function buildDuplicateGroups(){
   const map={};
   for(const f of state.files){
-    if(!f.size||isProtectedPath(f.path)||isRecyclePath(f.path))continue;
+    if(!f.size||isProtectedPath(f.path)||isRecyclePath(f.path)||state.quarantineExcludedPaths.has(norm(f.path).toLowerCase()))continue;
     const key=f.name.toLowerCase()+"|"+f.size;
     (map[key]??=[]).push(f);
   }
@@ -364,16 +364,23 @@ window.chooseFolderKeep=(id,side)=>{
   });
   renderDuplicateGroups();
 };
-window.quarantineFolderDuplicates=id=>{
+window.quarantineFolderDuplicates=async id=>{
   const fg=state.folderGroups.find(x=>x.id===id);if(!fg||!fg.keepSide)return;
   const gs=duplicateGroupsForFolder(fg);
   if(!gs.length)return;
   if(!gs.every(g=>g.verified&&g.identical)){alert("Prima verifica i duplicati: DiskCare non mette in quarantena copie non confermate come identiche.");return}
+  if(!await ensureQuarantineDestination())return;
   const keepFolder=fg.keepSide==="A"?fg.a:fg.b;
   let n=0;
-  gs.forEach(g=>g.files.forEach(f=>{if(!fileIsUnder(f,keepFolder)&&!state.quarantine.some(q=>q.sourceId===f.id)){sendToQuarantine(f.id);n++}}));
-  alert(n+" copie verificate sono state aggiunte alla Quarantena DiskCare. Gli originali scelti restano invariati.");
-  renderDuplicateGroups();
+  for(const g of gs){
+    for(const f of g.files){
+      if(!fileIsUnder(f,keepFolder)&&!state.quarantineExcludedPaths.has(norm(f.path).toLowerCase())){
+        const ok=await sendToQuarantine(f.id);if(ok)n++;
+      }
+    }
+  }
+  recalc();
+  alert(n+" copie verificate sono state aggiunte alla Quarantena DiskCare. La coppia risolta non viene più mostrata tra i duplicati attivi.");
 };
 window.prepareFolderMove=async(id,side)=>{
   const fg=state.folderGroups.find(x=>x.id===id);if(!fg)return;
@@ -512,16 +519,86 @@ window.consolidateFolder=async(id,dir)=>{
   }catch(e){alert("Consolidamento interrotto: "+e.message)}
 };
 
-function sendToQuarantine(id){
-  const f=state.files.find(x=>x.id===id);if(!f||state.quarantine.some(q=>q.sourceId===id))return;
-  state.quarantine.push({id:crypto.randomUUID(),sourceId:id,name:f.name,size:f.size,originalPath:f.path,when:new Date().toLocaleString("it-IT")});updateQ();
+function saveQuarantineState(){
+  const meta=state.quarantine.map(({id,sourceId,name,size,originalPath,when,destinationName,freesSpace})=>({id,sourceId,name,size,originalPath,when,destinationName,freesSpace}));
+  localStorage.setItem("diskcare.quarantineItems",JSON.stringify(meta));
+  localStorage.setItem("diskcare.quarantineDestination",JSON.stringify({name:state.quarantineDestination.name,mode:state.quarantineDestination.mode}));
+}
+function loadQuarantineState(){
+  try{
+    const items=JSON.parse(localStorage.getItem("diskcare.quarantineItems")||"[]");
+    if(Array.isArray(items))state.quarantine=items;
+    state.quarantineExcludedPaths=new Set(state.quarantine.map(q=>norm(q.originalPath).toLowerCase()));
+    const d=JSON.parse(localStorage.getItem("diskcare.quarantineDestination")||"{}");
+    if(d&&typeof d==="object"){state.quarantineDestination.name=d.name||"";state.quarantineDestination.mode=d.mode||"unknown"}
+  }catch(e){}
+}
+function quarantineModeLabel(mode){
+  return mode==="other"?"Altro disco — libera spazio":mode==="same"?"Stesso disco — non libera spazio":"Da confermare";
+}
+function renderQuarantineDestination(){
+  const d=state.quarantineDestination;
+  $("qDestinationName").textContent=d.name||"Nessuna destinazione scelta";
+  $("qDestinationMode").textContent=d.name?quarantineModeLabel(d.mode):"Scegli prima una cartella o un disco.";
+  $("markOtherDiskBtn").disabled=!d.name;$("markSameDiskBtn").disabled=!d.name;
+  $("markOtherDiskBtn").classList.toggle("selected",d.mode==="other");
+  $("markSameDiskBtn").classList.toggle("selected",d.mode==="same");
+  $("qDestSummary").textContent=d.name?(d.mode==="other"?"Altro disco":d.mode==="same"?"Stesso disco":"Da confermare"):"Non scelta";
+}
+async function chooseQuarantineDestination(){
+  if(!window.showDirectoryPicker){alert("Per scegliere la quarantena usa Chrome o Edge aggiornato.");return false}
+  try{
+    const h=await showDirectoryPicker({mode:"readwrite"});
+    state.quarantineDestination.handle=h;state.quarantineDestination.name=h.name;state.quarantineDestination.mode="unknown";
+    saveQuarantineState();renderQuarantineDestination();updateQ();
+    const other=confirm("La destinazione scelta si trova su un disco fisico diverso da quello che stai pulendo?\n\nOK = sì, altro disco\nAnnulla = no, stesso disco");
+    state.quarantineDestination.mode=other?"other":"same";
+    saveQuarantineState();renderQuarantineDestination();updateQ();
+    return true;
+  }catch(e){return false}
+}
+async function ensureQuarantineDestination(){
+  if(!state.quarantineDestination.name)return await chooseQuarantineDestination();
+  if(state.quarantineDestination.mode==="unknown"){
+    alert("Indica se la destinazione della quarantena si trova sullo stesso disco o su un altro disco.");
+    document.querySelector('[data-section="quarantine"]').click();
+    return false;
+  }
+  if(state.quarantineDestination.mode==="same"){
+    const ok=confirm("La quarantena è sullo stesso disco: questa operazione NON libererà spazio sul disco origine. Vuoi continuare comunque?");
+    if(!ok){document.querySelector('[data-section="quarantine"]').click();return false}
+  }
+  return true;
+}
+async function sendToQuarantine(id){
+  const f=state.files.find(x=>x.id===id);if(!f||state.quarantine.some(q=>norm(q.originalPath).toLowerCase()===norm(f.path).toLowerCase()))return false;
+  if(!await ensureQuarantineDestination())return false;
+  const freesSpace=state.quarantineDestination.mode==="other";
+  state.quarantine.push({id:crypto.randomUUID(),sourceId:id,name:f.name,size:f.size,originalPath:f.path,when:new Date().toLocaleString("it-IT"),destinationName:state.quarantineDestination.name,freesSpace});
+  state.quarantineExcludedPaths.add(norm(f.path).toLowerCase());
+  saveQuarantineState();updateQ();
+  return true;
 }
 window.sendToQuarantine=sendToQuarantine;
 function updateQ(){
-  const bytes=state.quarantine.reduce((s,q)=>s+q.size,0);$("qBadge").textContent=state.quarantine.length;$("qCount").textContent=state.quarantine.length;$("qSpace").textContent=fmt(bytes);$("qOps").textContent=state.quarantine.length;$("qCompactText").textContent=state.quarantine.length+" file • "+fmt(bytes)+" • tutto ripristinabile";renderQ();
+  const bytes=state.quarantine.reduce((sum,q)=>sum+q.size,0),freed=state.quarantine.reduce((sum,q)=>sum+(q.freesSpace?q.size:0),0);
+  $("qBadge").textContent=state.quarantine.length;$("qCount").textContent=state.quarantine.length;$("qSpace").textContent=fmt(bytes);$("qFreedSpace").textContent=fmt(freed);$("qCompactText").textContent=state.quarantine.length+" file • "+fmt(bytes)+" • tutto ripristinabile";
+  $("qSpaceMessage").innerHTML="<strong>Spazio "+(state.quarantineDestination.mode==="other"?"previsto da liberare":"liberato")+" sul disco origine: "+fmt(freed)+"</strong><span>"+(state.quarantineDestination.mode==="other"?"La destinazione è indicata come disco diverso: questi file non verranno più conteggiati tra i duplicati attivi.":state.quarantineDestination.mode==="same"?"La quarantena è sullo stesso disco: spostare i file non riduce lo spazio occupato complessivo.":"Scegli e classifica la destinazione della quarantena prima di considerare recuperato lo spazio.")+"</span>";
+  renderQuarantineDestination();renderQ();
 }
-function renderQ(){const q=($("qSearch")?.value||"").toLowerCase(),items=state.quarantine.filter(x=>(x.name+" "+x.originalPath).toLowerCase().includes(q));$("qTableWrap").innerHTML=items.length?"<table><thead><tr><th>File</th><th>Spazio</th><th>Origine</th><th>Azione</th></tr></thead><tbody>"+items.map(x=>"<tr><td>"+esc(x.name)+"</td><td>"+fmt(x.size)+"</td><td class=\"path\">"+esc(x.originalPath)+"</td><td><button class=\"mini-btn\" onclick=\"restoreItem('"+x.id+"')\">Ripristina</button></td></tr>").join("")+"</tbody></table>":"<div class=\"empty-state\"><strong>Quarantena vuota</strong></div>"}
-window.restoreItem=id=>{state.quarantine=state.quarantine.filter(x=>x.id!==id);updateQ()};
+function renderQ(){
+  const q=($("qSearch")?.value||"").toLowerCase(),items=state.quarantine.filter(x=>(x.name+" "+x.originalPath+" "+(x.destinationName||"")).toLowerCase().includes(q));
+  $("qTableWrap").innerHTML=items.length?"<table><thead><tr><th>File</th><th>Spazio</th><th>Origine</th><th>Destinazione</th><th>Effetto</th><th>Azione</th></tr></thead><tbody>"+items.map(x=>"<tr><td>"+esc(x.name)+"</td><td>"+fmt(x.size)+"</td><td class=\"path\">"+esc(x.originalPath)+"</td><td>"+esc(x.destinationName||"—")+"</td><td>"+(x.freesSpace?"Libera spazio sull'origine":"Non libera spazio")+"</td><td><button class=\"mini-btn\" onclick=\"restoreItem('"+x.id+"')\">Ripristina</button></td></tr>").join("")+"</tbody></table>":"<div class=\"empty-state\"><strong>Quarantena vuota</strong></div>";
+}
+window.restoreItem=id=>{
+  const item=state.quarantine.find(x=>x.id===id);if(!item)return;
+  state.quarantine=state.quarantine.filter(x=>x.id!==id);
+  state.quarantineExcludedPaths.delete(norm(item.originalPath).toLowerCase());
+  saveQuarantineState();updateQ();recalc();
+};
+$("pickQuarantineDestBtn").onclick=chooseQuarantineDestination;
+$("markOtherDiskBtn").onclick=()=>{state.quarantineDestination.mode="other";saveQuarantineState();renderQuarantineDestination();updateQ()};
+$("markSameDiskBtn").onclick=()=>{state.quarantineDestination.mode="same";saveQuarantineState();renderQuarantineDestination();updateQ()};
 
 function updateHomeAfterScan(elapsedSeconds=0){
   const root=state.rootName||"Percorso autorizzato";
@@ -773,5 +850,5 @@ async function runTransfer(move){
 $("copyBtn").onclick=()=>runTransfer(false);$("moveBtn").onclick=()=>runTransfer(true);
 
 $("quarantineResidualsBtn").onclick=()=>{state.files.filter(isResidualFile).forEach(f=>sendToQuarantine(f.id))};
-$("qSearch").oninput=renderQ;$("restoreAllBtn").onclick=()=>{state.quarantine=[];updateQ()};$("purgeAllBtn").onclick=()=>{if(state.quarantine.length&&confirm("Eliminare definitivamente la quarantena simulata?")){state.quarantine=[];updateQ()}};
-loadSavedTheme();loadSavedPerformance();updateQ();
+$("qSearch").oninput=renderQ;$("restoreAllBtn").onclick=()=>{state.quarantine=[];state.quarantineExcludedPaths.clear();saveQuarantineState();updateQ();recalc()};$("purgeAllBtn").onclick=()=>{if(state.quarantine.length&&confirm("Eliminare definitivamente la quarantena simulata?")){state.quarantine=[];state.quarantineExcludedPaths.clear();saveQuarantineState();updateQ();recalc()}};
+loadSavedTheme();loadSavedPerformance();loadQuarantineState();updateQ();
