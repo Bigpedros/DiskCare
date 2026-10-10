@@ -308,8 +308,44 @@ function updateQ(){
 function renderQ(){const q=($("qSearch")?.value||"").toLowerCase(),items=state.quarantine.filter(x=>(x.name+" "+x.originalPath).toLowerCase().includes(q));$("qTableWrap").innerHTML=items.length?"<table><thead><tr><th>File</th><th>Spazio</th><th>Origine</th><th>Azione</th></tr></thead><tbody>"+items.map(x=>"<tr><td>"+esc(x.name)+"</td><td>"+fmt(x.size)+"</td><td class=\"path\">"+esc(x.originalPath)+"</td><td><button class=\"mini-btn\" onclick=\"restoreItem('"+x.id+"')\">Ripristina</button></td></tr>").join("")+"</tbody></table>":"<div class=\"empty-state\"><strong>Quarantena vuota</strong></div>"}
 window.restoreItem=id=>{state.quarantine=state.quarantine.filter(x=>x.id!==id);updateQ()};
 
+function updateHomeAfterScan(elapsedSeconds=0){
+  const root=state.rootName||"Percorso autorizzato";
+  const folders=new Set();
+  state.files.forEach(f=>{const d=dirname(f.path);if(d)folders.add(d.toLowerCase())});
+  const totalBytes=state.files.reduce((s,f)=>s+f.size,0);
+  const ot=opportunityTotals();
+  const byType=t=>state.opportunities.filter(o=>o.type===t);
+  const bytesOf=arr=>arr.reduce((s,o)=>s+o.bytes,0);
+  const dupOps=byType("duplicate"),folderOps=byType("folder"),cacheOps=byType("cache");
+  const reviewItems=state.files.map(f=>advice(f)).filter(a=>a.type==="check").length;
+  const keepItems=state.files.map(f=>advice(f)).filter(a=>a.type==="keep").length;
+  const protectedItems=state.files.filter(f=>isProtectedPath(f.path)).length;
+
+  $("overview").classList.add("has-results");
+  $("homeTitle").textContent="Analisi completata";
+  $("homeSubtitle").textContent="DiskCare ha organizzato i risultati per mostrarti subito cosa occupa spazio e cosa puoi controllare.";
+  $("scanScopeText").textContent="Percorso autorizzato: "+root;
+  $("homeScanRoot").textContent=root;
+  $("homeFileCount").textContent=state.files.length.toLocaleString("it-IT");
+  $("homeFolderCount").textContent=folders.size.toLocaleString("it-IT");
+  $("spaceTotal").textContent=fmt(totalBytes);
+  $("potentialRecover").textContent=fmt(ot.verified+ot.potential);
+  $("homeDupGroups").textContent=state.duplicateGroups.length.toLocaleString("it-IT")+" gruppi";
+  $("homeDupBytes").textContent=fmt(bytesOf(dupOps))+" recuperabili";
+  $("homeFolderGroups").textContent=state.folderGroups.length.toLocaleString("it-IT")+" gruppi";
+  $("homeFolderBytes").textContent=fmt(bytesOf(folderOps))+" recuperabili";
+  $("homeCacheCount").textContent=cacheOps.length.toLocaleString("it-IT")+" elementi";
+  $("homeCacheBytes").textContent=fmt(bytesOf(cacheOps))+" recuperabili";
+  $("homeReviewCount").textContent=reviewItems.toLocaleString("it-IT")+" elementi";
+  $("homeKeepText").textContent=keepItems.toLocaleString("it-IT")+" file non richiedono interventi";
+  $("homeProtectedText").textContent=protectedItems.toLocaleString("it-IT")+" file protetti";
+  const sec=Math.max(0,Math.round(elapsedSeconds));
+  const elapsed=String(Math.floor(sec/60)).padStart(2,"0")+":"+String(sec%60).padStart(2,"0");
+  $("statusText").textContent="Analisi completata: "+state.files.length.toLocaleString("it-IT")+" file e "+folders.size.toLocaleString("it-IT")+" cartelle.";
+  $("metricElapsed").textContent=elapsed;
+}
 function setProgress(p,phase,no,status,speed=0,elapsed="00:00",eta="—"){$("progressBar").style.width=p+"%";$("phaseName").textContent=phase;$("metricPhase").textContent=no;$("statusText").textContent=status;$("metricSpeed").textContent=speed;$("metricElapsed").textContent=elapsed;$("metricEta").textContent=eta}
-function showSection(sec){document.querySelectorAll(".view").forEach(v=>v.classList.remove("active-view"));(document.getElementById(sec)||$("overview")).classList.add("active-view")}
+function showSection(sec){document.querySelectorAll(".view").forEach(v=>v.classList.remove("active-view"));(document.getElementById(sec)||$("overview")).classList.add("active-view");window.scrollTo({top:0,left:0,behavior:"instant"})}
 document.querySelectorAll(".nav-item").forEach(b=>b.onclick=()=>{document.querySelectorAll(".nav-item").forEach(x=>x.classList.remove("active"));b.classList.add("active");showSection(b.dataset.section)});
 $("openQuarantine").onclick=()=>document.querySelector('[data-section="quarantine"]').click();
 
@@ -338,7 +374,7 @@ $("scanBtn").onclick=async()=>{
     setProgress(63,"Duplicati","4 / 7","Raggruppamento duplicati…");buildDuplicateGroups();await sleep(30);
     setProgress(78,"Cartelle","5 / 7","Aggregazione alberi…");buildFolderGroups();await sleep(30);
     setProgress(90,"Spazio recuperabile","6 / 7","Calcolo opportunità senza doppi conteggi…");buildOpportunities();recalc();
-    setProgress(100,"Completata","7 / 7","Scansione completata: "+state.files.length.toLocaleString("it-IT")+" file.");
+    const elapsedTotal=(Date.now()-tr.start)/1000;setProgress(100,"Completata","7 / 7","Scansione completata.");updateHomeAfterScan(elapsedTotal);
   }catch(e){if(e.name!=="AbortError")setProgress(0,"Interrotta","0 / 7","Scansione interrotta: "+e.message)}
 };
 
@@ -360,7 +396,7 @@ $("demoBtn").onclick=()=>{
     {id:"r1",name:".DS_Store",size:6144,path:"E:/Foto/.DS_Store",old:true},
     {id:"b1",name:"old_backup.zip",size:1.2*GB,path:"E:/$Recycle.Bin/old_backup.zip",old:true}
   ];
-  recalc();setProgress(100,"Completata","7 / 7","Demo basata sui casi emersi dall'analisi reale.",9000,"00:01","0 min");
+  recalc();setProgress(100,"Completata","7 / 7","Demo completata.");updateHomeAfterScan(1);
 };
 
 function profileLabel(p){return p==="light"?"Minimo":p==="fast"?"Massimo":"Medio"}
