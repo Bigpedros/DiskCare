@@ -269,16 +269,30 @@ function folderRelationship(fg){
   }
   return{...p,label,confidence,reason};
 }
+function relativeFromScanRoot(path){
+  const p=norm(path),root=norm(state.rootName);
+  if(root&&p.toLowerCase()===root.toLowerCase())return"";
+  if(root&&p.toLowerCase().startsWith((root+"/").toLowerCase()))return p.slice(root.length+1);
+  return p.replace(/^\/+/, "");
+}
 function renderPathTree(fg){
   const r=folderRelationship(fg);
-  const common=r.common.join("/");
-  const branch=x=>x.length?x.map((p,i)=>"<div class=\"tree-line\" style=\"--depth:"+i+"\"><span>└─</span><b>"+esc(p)+"</b></div>").join(""):"<div class=\"tree-line\"><span>└─</span><b>stessa posizione</b></div>";
-  return "<section class=\"folder-relation-box\">"+
-    "<div class=\"relation-box-head\"><div><span class=\"eyebrow\">POSIZIONE E RELAZIONE</span><h4>"+esc(r.label)+"</h4></div><span class=\"relation-confidence\">Confidenza "+esc(r.confidence)+"</span></div>"+
-    "<div class=\"tree-common\"><span>Radice comune</span><strong>"+esc(common||"Nessuna radice comune significativa")+"</strong></div>"+
-    "<div class=\"tree-branches\"><div class=\"tree-branch\"><span class=\"tree-badge\">A</span>"+branch(r.branchA)+"</div><div class=\"tree-branch\"><span class=\"tree-badge\">B</span>"+branch(r.branchB)+"</div></div>"+
-    "<p class=\"relation-reason\"><strong>Perché:</strong> "+esc(r.reason)+"</p>"+
-  "</section>";
+  const rootLabel=state.rootName||pathParts(fg.a)[0]||"Radice analizzata";
+  const A=pathParts(relativeFromScanRoot(fg.a)),B=pathParts(relativeFromScanRoot(fg.b));
+  const branch=(parts,side)=>"<div class=\"tree-route\"><span class=\"tree-badge\">"+side+"</span>"+(parts.length?parts.map((p,i)=>"<div class=\"tree-line\" style=\"--depth:"+i+"\"><span>└─</span><b>"+esc(p)+"</b></div>").join(""):"<div class=\"tree-line\"><span>└─</span><b>"+esc(rootLabel)+"</b></div>")+"</div>";
+  return "<div class=\"folder-tree-column\">"+
+    "<span class=\"eyebrow\">POSIZIONE NELL'ALBERO</span>"+
+    "<div class=\"tree-root\"><span>Radice analizzata</span><strong>"+esc(rootLabel)+"</strong></div>"+
+    "<div class=\"tree-routes\">"+branch(A,"A")+branch(B,"B")+"</div>"+
+    "<div class=\"tree-relation\"><strong>"+esc(r.label)+"</strong><span>Confidenza "+esc(r.confidence)+"</span><p>"+esc(r.reason)+"</p></div>"+
+  "</div>";
+}
+function renderExclusiveFiles(fg,side){
+  const items=side==="A"?fg.onlyA:fg.onlyB;
+  const other=side==="A"?"B":"A";
+  return "<div class=\"exclusive-list\"><div class=\"exclusive-head\"><strong>Solo nella cartella "+side+"</strong><span>"+items.length+" file che non esistono nella cartella "+other+"</span></div>"+
+    (items.length?items.map(f=>"<div class=\"exclusive-file\"><span>"+esc(f.name)+"</span><small>"+esc(f.path)+"</small><b>"+fmt(f.size)+"</b></div>").join(""):"<div class=\"exclusive-empty\">Nessun file esclusivo.</div>")+
+  "</div>";
 }
 function renderFolderDuplicateCard(fg){
   const gs=duplicateGroupsForFolder(fg);
@@ -288,28 +302,46 @@ function renderFolderDuplicateCard(fg){
     const a=g.files.find(f=>fileIsUnder(f,fg.a)),b=g.files.find(f=>fileIsUnder(f,fg.b));
     return "<div class=\"folder-file-row\"><div><strong>"+esc(g.files[0].name)+"</strong><small>"+esc(a?a.path:"")+" ↔ "+esc(b?b.path:"")+"</small></div><span>"+fmt(g.files[0].size)+"</span></div>";
   }).join("");
+  const aNote=fg.onlyA.length?("Contiene "+fg.onlyA.length+" file che "+(fg.onlyA.length===1?"non esiste":"non esistono")+" nella cartella B."):"Tutti i suoi file risultano presenti anche nella cartella B.";
+  const bNote=fg.onlyB.length?("Contiene "+fg.onlyB.length+" file che "+(fg.onlyB.length===1?"non esiste":"non esistono")+" nella cartella A."):"Tutti i suoi file risultano presenti anche nella cartella A.";
   return "<article class=\"duplicate-folder-card\">"+
     "<div class=\"duplicate-folder-head\"><div><span class=\"eyebrow\">COPPIA DI CARTELLE</span><h3>"+esc(basename(fg.a))+" ↔ "+esc(basename(fg.b))+"</h3><p>"+fg.matches+" file in comune • "+fmt(fg.bytes)+" duplicati potenziali</p></div><span class=\"folder-verify-state\">"+(verified?"Identici verificati":"Da verificare")+"</span></div>"+
-    renderPathTree(fg)+
-    "<div class=\"duplicate-folder-paths\">"+
-      "<div class=\"folder-choice "+(keep==="A"?"selected-folder":"")+"\"><span>Cartella A</span><strong>"+esc(fg.a)+"</strong><small>"+fg.countA+" file</small><button class=\"btn ghost\" onclick=\"chooseFolderKeep('"+fg.id+"','A')\">Mantieni A</button></div>"+
-      "<div class=\"folder-choice "+(keep==="B"?"selected-folder":"")+"\"><span>Cartella B</span><strong>"+esc(fg.b)+"</strong><small>"+fg.countB+" file</small><button class=\"btn ghost\" onclick=\"chooseFolderKeep('"+fg.id+"','B')\">Mantieni B</button></div>"+
+    "<div class=\"folder-comparison-grid\">"+
+      "<div class=\"folder-choice folder-column "+(keep==="A"?"selected-folder":"")+"\"><span>Cartella A</span><strong>"+esc(fg.a)+"</strong><small>"+fg.countA+" file</small><p>"+esc(aNote)+"</p><button class=\"btn ghost\" onclick=\"chooseFolderKeep('"+fg.id+"','A')\">Mantieni A</button></div>"+
+      "<div class=\"folder-choice folder-column "+(keep==="B"?"selected-folder":"")+"\"><span>Cartella B</span><strong>"+esc(fg.b)+"</strong><small>"+fg.countB+" file</small><p>"+esc(bNote)+"</p><button class=\"btn ghost\" onclick=\"chooseFolderKeep('"+fg.id+"','B')\">Mantieni B</button></div>"+
+      renderPathTree(fg)+
     "</div>"+
-    "<div class=\"duplicate-folder-stats\">"+
-      "<div><span>Uguali</span><b>"+fg.matches+"</b></div><div><span>Solo A</span><b>"+fg.onlyA.length+"</b></div><div><span>Solo B</span><b>"+fg.onlyB.length+"</b></div><div><span>Conflitti</span><b>"+fg.changed.length+"</b></div><div><span>Duplicati</span><b>"+gs.length+"</b></div><div><span>Spazio</span><b>"+fmt(fg.bytes)+"</b></div>"+
+    "<div class=\"duplicate-folder-stats readable-stats\">"+
+      "<div><span>Presenti in entrambe</span><b>"+fg.matches+"</b></div>"+
+      "<div><span>Solo nella cartella A</span><b>"+fg.onlyA.length+"</b>"+(fg.onlyA.length?"<button class=\"stat-link\" onclick=\"toggleExclusiveFiles('"+fg.id+"','A')\">Mostra quale</button>":"")+"</div>"+
+      "<div><span>Solo nella cartella B</span><b>"+fg.onlyB.length+"</b>"+(fg.onlyB.length?"<button class=\"stat-link\" onclick=\"toggleExclusiveFiles('"+fg.id+"','B')\">Mostra quale</button>":"")+"</div>"+
+      "<div><span>File diversi da controllare</span><b>"+fg.changed.length+"</b></div>"+
+      "<div><span>Copie duplicate</span><b>"+gs.length+"</b></div>"+
+      "<div><span>Spazio duplicato</span><b>"+fmt(fg.bytes)+"</b></div>"+
     "</div>"+
-    "<div class=\"duplicate-folder-actions\">"+
-      "<button class=\"mini-btn\" onclick=\"toggleFolderDuplicateDetails('"+fg.id+"')\">Mostra file</button>"+
+    "<div class=\"exclusive-files-panel\" id=\"exclusiveFiles-"+fg.id+"\" hidden></div>"+
+    "<div class=\"folder-actions-block\"><span>Azioni principali</span><div class=\"duplicate-folder-actions primary-folder-actions\">"+
       "<button class=\"mini-btn good\" onclick=\"consolidateFolder('"+fg.id+"','BtoA')\">Unisci in A</button>"+
       "<button class=\"mini-btn good\" onclick=\"consolidateFolder('"+fg.id+"','AtoB')\">Unisci in B</button>"+
+      (keep?"<button class=\"mini-btn danger\" onclick=\"quarantineFolderDuplicates('"+fg.id+"')\">Quarantena copie escluse</button>":"")+
+    "</div></div>"+
+    "<div class=\"folder-actions-block secondary-actions\"><span>Altre azioni</span><div class=\"duplicate-folder-actions\">"+
+      "<button class=\"mini-btn\" onclick=\"toggleFolderDuplicateDetails('"+fg.id+"')\">Mostra tutti i file</button>"+
       "<button class=\"mini-btn\" onclick=\"prepareFolderMove('"+fg.id+"','A')\">Sposta A</button>"+
       "<button class=\"mini-btn\" onclick=\"prepareFolderMove('"+fg.id+"','B')\">Sposta B</button>"+
-      (keep?"<button class=\"mini-btn danger\" onclick=\"quarantineFolderDuplicates('"+fg.id+"')\">Quarantena copie escluse</button>":"")+
-    "</div>"+
-    (!keep?"<div class=\"folder-action-note\">Scegli prima quale cartella vuoi conservare. Nessun file viene rimosso automaticamente.</div>":"")+
+      "<button class=\"mini-btn\" onclick=\"clearFolderChoice('"+fg.id+"')\">Non fare nulla</button>"+
+    "</div></div>"+
+    (!keep?"<div class=\"folder-action-note\">Scegli quale cartella vuoi conservare solo se intendi intervenire. Nessun file viene rimosso automaticamente.</div>":"")+
     "<div class=\"folder-duplicate-details\" id=\"folderDupDetails-"+fg.id+"\" hidden>"+(details||"<div class=\"empty-state\"><strong>Nessun dettaglio file</strong></div>")+"</div>"+
   "</article>";
 }
+window.toggleExclusiveFiles=(id,side)=>{
+  const fg=state.folderGroups.find(x=>x.id===id),el=$("exclusiveFiles-"+id);if(!fg||!el)return;
+  const next=el.dataset.side===side&&!el.hidden;
+  if(next){el.hidden=true;el.dataset.side="";return}
+  el.innerHTML=renderExclusiveFiles(fg,side);el.dataset.side=side;el.hidden=false;
+};
+window.clearFolderChoice=id=>{const fg=state.folderGroups.find(x=>x.id===id);if(!fg)return;fg.keepSide=null;renderDuplicateGroups()};
 function renderDuplicateGroups(){
   const groupedIds=new Set();
   state.folderGroups.forEach(fg=>duplicateGroupsForFolder(fg).forEach(g=>groupedIds.add(g.id)));
