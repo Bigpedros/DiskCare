@@ -329,8 +329,39 @@
 <section id="protected" class="view"><header class="topbar"><div><h1>Non toccare</h1><p>File e percorsi di sistema che DiskCare protegge automaticamente.</p></div></header><section class="panel"><div id="protectedWrap" class="table-wrap"><div class="empty-state"><strong>Nessun elemento protetto rilevato</strong></div></div></section></section>
 
 <section id="quarantine" class="view">
-  <header class="topbar"><div><h1>Quarantena DiskCare</h1><p>Nel prototipo web le azioni di pulizia restano simulate; copia e spostamento autorizzati possono invece essere reali.</p></div><div class="top-actions"><button class="btn ghost" id="restoreAllBtn">Ripristina tutto</button><button class="btn danger" id="purgeAllBtn">Elimina definitivamente</button></div></header>
-  <section class="summary-strip"><article><span>File</span><strong id="qCount">0</strong></article><article><span>Spazio</span><strong id="qSpace">0 B</strong></article><article><span>Operazioni</span><strong id="qOps">0</strong></article><article><span>Conservazione</span><strong>30 gg</strong></article></section>
+  <header class="topbar"><div><h1>Quarantena DiskCare</h1><p>Per liberare davvero spazio, la quarantena deve trovarsi su un disco diverso da quello che stai pulendo.</p></div><div class="top-actions"><button class="btn ghost" id="restoreAllBtn">Ripristina tutto</button><button class="btn danger" id="purgeAllBtn">Elimina definitivamente</button></div></header>
+
+  <section class="quarantine-destination-card">
+    <div class="q-dest-copy">
+      <span class="eyebrow">DESTINAZIONE QUARANTENA</span>
+      <h2>Dove vuoi conservare i file?</h2>
+      <p>DiskCare copierà qui gli elementi scelti prima di rimuoverli dal disco da pulire. Se scegli lo stesso disco, lo spazio occupato non diminuisce.</p>
+    </div>
+    <div class="q-dest-control">
+      <strong id="qDestinationName">Nessuna destinazione scelta</strong>
+      <span id="qDestinationMode">Scegli prima una cartella o un disco.</span>
+      <div class="action-row">
+        <button class="btn primary" id="pickQuarantineDestBtn">Scegli destinazione</button>
+        <button class="btn ghost" id="markOtherDiskBtn" disabled>È su un altro disco</button>
+        <button class="btn ghost" id="markSameDiskBtn" disabled>È sullo stesso disco</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="q-space-message" id="qSpaceMessage">
+    <strong>Spazio liberato sul disco origine: 0 B</strong>
+    <span>Finché non scegli una destinazione su un altro disco, DiskCare non considera recuperato alcuno spazio.</span>
+  </section>
+
+  <section class="summary-strip">
+    <article><span>File in quarantena</span><strong id="qCount">0</strong></article>
+    <article><span>Spazio occupato in quarantena</span><strong id="qSpace">0 B</strong></article>
+    <article><span>Spazio liberabile sull'origine</span><strong id="qFreedSpace">0 B</strong></article>
+    <article><span>Destinazione</span><strong id="qDestSummary">Non scelta</strong></article>
+  </section>
+
+  <section class="notice" id="qPrototypeNotice"><strong>Anteprima PWA:</strong> in questa versione la quarantena viene registrata e sottratta dai risultati successivi, ma lo spostamento fisico dei file resta simulato.</section>
+
   <section class="panel"><div class="panel-head"><h2>File in quarantena</h2><input id="qSearch" placeholder="Cerca"></div><div id="qTableWrap" class="table-wrap"></div></section>
 </section>
 
