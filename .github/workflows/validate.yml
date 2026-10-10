@@ -26,3 +26,14 @@ jobs:
           test -f assets/diskcare-icon.png
       - name: Validate manifest JSON
         run: node -e "JSON.parse(require('fs').readFileSync('manifest.webmanifest','utf8')); console.log('manifest ok')"
+      - name: Package Netlify Drop ZIP
+        run: |
+          mkdir -p dist-package
+          cp index.html styles.css app.js manifest.webmanifest netlify.toml sw.js dist-package/
+          cp -R assets dist-package/assets
+      - name: Upload Netlify package
+        uses: actions/upload-artifact@v4
+        with:
+          name: DiskCare-UX-Guidata
+          path: dist-package/
+          if-no-files-found: error
