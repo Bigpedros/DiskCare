@@ -50,3 +50,17 @@ DiskCare mantiene la filosofia originale:
 4. copia/consolida quando serve;
 5. mette in quarantena prima di eliminare;
 6. non considera mai l'età, da sola, una ragione sufficiente per cancellare un file.
+
+
+## UX guidata — restyling ottobre 2026
+
+Questa variante introduce una Home orientata all'obiettivo invece che alle funzioni tecniche:
+
+- Recupera spazio
+- Sistema duplicati
+- Copia o unisci cartelle
+- Quarantena
+
+Le sezioni tecniche restano disponibili sotto **Strumenti avanzati**. La logica di sicurezza originale non viene rimossa: SHA-256, protezioni dei percorsi di sistema, quarantena e blocco dei conflitti restano invariati.
+
+Principio UX adottato: ogni schermata deve chiarire **dove sono, cosa sta succedendo e cosa devo fare adesso**.
