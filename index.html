@@ -86,7 +86,7 @@
   <section class="scan-hero compact guided-status">
     <div class="scan-title-row"><div><span class="eyebrow">STATO ANALISI</span><h2 id="phaseName">Pronto per iniziare</h2></div><span class="profile-pill" id="profilePill">Profilo normale</span></div>
     <p class="status" id="statusText">Premi “Inizia analisi guidata” oppure usa i dati demo per vedere il flusso.</p>
-    <div class="progress-track"><div class="progress-bar" id="progressBar"></div></div>
+    <div class="progress-track" data-progress="0%"><div class="progress-bar" id="progressBar"></div></div>
     <div class="scan-meta"><span><b id="metricPhase">0 / 7</b><small>fase</small></span><span><b id="metricSpeed">0</b><small>file/sec</small></span><span><b id="metricElapsed">00:00</b><small>trascorso</small></span><span><b id="metricEta">—</b><small>residuo</small></span></div>
   </section>
 
@@ -215,9 +215,18 @@
 
 <section id="duplicates" class="view">
   <header class="topbar"><div><h1>Duplicati</h1><p>1. Verifica che siano identici → 2. scegli cosa conservare → 3. manda l'altra copia in quarantena.</p></div><div class="top-actions"><button class="btn primary" id="verifyAllBtn">Cerca e verifica duplicati</button></div></header>
-  <section class="scan-hero compact"><div class="scan-title-row"><div><span class="eyebrow">VERIFICA GLOBALE</span><h2 id="verifyPhase">Non avviata</h2></div><span class="profile-pill" id="verifyPercent">0%</span></div><p class="status" id="verifyText">Se non hai ancora analizzato un percorso, DiskCare ti chiederà prima quale cartella o disco controllare.</p><div class="progress-track"><div class="progress-bar" id="verifyProgress"></div></div></section>
-  <section class="notice"><strong>Sicurezza:</strong> la rimozione batch è disponibile solo per gruppi verificati come identici.</section>
-  <div id="duplicateGroupsWrap"><div class="empty-state"><strong>Nessun gruppo duplicato</strong></div></div>
+  <section class="scan-hero compact"><div class="scan-title-row"><div><span class="eyebrow">VERIFICA GLOBALE</span><h2 id="verifyPhase">Non avviata</h2></div></div><p class="status" id="verifyText">Se non hai ancora analizzato un percorso, DiskCare ti chiederà prima quale cartella o disco controllare.</p><div class="progress-track" data-progress="0%"><div class="progress-bar" id="verifyProgress"></div></div></section>
+  <section class="notice"><strong>Sicurezza:</strong> DiskCare verifica prima i contenuti. Le copie escluse possono essere messe in quarantena solo dopo la verifica.</section>
+
+  <section class="duplicate-section-head">
+    <div><span class="eyebrow">PRIMA LE CARTELLE</span><h2>Cartelle duplicate o molto simili</h2><p>Quando molti duplicati appartengono alle stesse due cartelle, DiskCare li raggruppa per evitare decine di decisioni ripetitive.</p></div>
+  </section>
+  <div id="duplicateFolderGroupsWrap"><div class="empty-state"><strong>Nessuna coppia di cartelle rilevata</strong></div></div>
+
+  <section class="duplicate-section-head duplicate-files-head">
+    <div><span class="eyebrow">POI I SINGOLI FILE</span><h2>File duplicati non già raggruppati</h2><p>Qui restano soltanto i duplicati sparsi che non appartengono a una coppia di cartelle candidata.</p></div>
+  </section>
+  <div id="duplicateGroupsWrap"><div class="empty-state"><strong>Nessun duplicato sparso</strong></div></div>
 </section>
 
 <section id="folders" class="view">
@@ -302,7 +311,7 @@
         <label><input type="checkbox" id="preserveFolderName" checked> Mantieni il nome della cartella origine</label>
       </div>
       <div class="action-row transfer-actions"><button class="btn primary" id="copyBtn">Copia</button><button class="btn danger" id="moveBtn">Sposta in sicurezza</button><button class="btn ghost" id="clearTransferBtn">Azzera</button></div>
-      <div class="progress-track"><div class="progress-bar" id="transferProgress"></div></div>
+      <div class="progress-track" data-progress="0%"><div class="progress-bar" id="transferProgress"></div></div>
       <p class="status" id="transferStatus">Pronto.</p>
       <div id="transferLog" class="transfer-log"></div>
     </section>
