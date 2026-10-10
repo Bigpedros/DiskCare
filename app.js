@@ -234,6 +234,52 @@ function folderGroupFullyVerified(fg){
   const gs=duplicateGroupsForFolder(fg);
   return gs.length>0&&gs.every(g=>g.verified&&g.identical);
 }
+function pathParts(path){return norm(path).split("/").filter(Boolean)}
+function commonPathInfo(a,b){
+  const A=pathParts(a),B=pathParts(b);let i=0;
+  while(i<A.length&&i<B.length&&A[i].toLowerCase()===B[i].toLowerCase())i++;
+  return{common:A.slice(0,i),branchA:A.slice(i),branchB:B.slice(i)};
+}
+function cleanFolderName(name){
+  return String(name||"").toLowerCase().replace(/\b(copy|copia|backup|bak|old|vecchio|nuovo|new)\b/g,"").replace(/[^a-z0-9àèéìòù]+/g," ").replace(/\s+/g," ").trim();
+}
+function folderNameSimilarity(a,b){
+  const A=new Set(cleanFolderName(a).split(" ").filter(Boolean)),B=new Set(cleanFolderName(b).split(" ").filter(Boolean));
+  if(!A.size||!B.size)return 0;
+  let same=0;A.forEach(x=>{if(B.has(x))same++});
+  return same/Math.max(A.size,B.size);
+}
+function folderRelationship(fg){
+  const p=commonPathInfo(fg.a,fg.b),sameDrive=pathParts(fg.a)[0]?.toLowerCase()===pathParts(fg.b)[0]?.toLowerCase();
+  const nameSim=folderNameSimilarity(basename(fg.a),basename(fg.b));
+  const noConflicts=fg.changed.length===0;
+  let label="Relazione non chiara",confidence="bassa",reason="Le cartelle condividono alcuni contenuti, ma non abbastanza elementi per dedurre con sicurezza perché esistano entrambe.";
+  if(fg.pct>=90&&noConflicts&&(nameSim>=.5||p.common.length>=2)){
+    label="Stesso progetto — molto probabile";confidence="alta";
+    reason="La maggior parte dei contenuti coincide, non risultano conflitti e i nomi o il percorso indicano una forte relazione.";
+  }else if(fg.pct>=75&&noConflicts){
+    label="Possibile duplicato riorganizzato";confidence="medio-alta";
+    reason="I contenuti coincidono in larga parte, ma la struttura dei percorsi è diversa: potrebbe essere una copia o una riorganizzazione dello stesso progetto.";
+  }else if(fg.pct>=60&&fg.changed.length<=2){
+    label="Possibile stesso progetto";confidence="media";
+    reason="Esiste una sovrapposizione significativa, ma alcune differenze richiedono una verifica prima di considerarle copie dello stesso progetto.";
+  }else if(!sameDrive&&fg.pct<70){
+    label="Possibili progetti o archivi diversi";confidence="media";
+    reason="Le cartelle si trovano su rami o dischi diversi e condividono solo parte dei contenuti.";
+  }
+  return{...p,label,confidence,reason};
+}
+function renderPathTree(fg){
+  const r=folderRelationship(fg);
+  const common=r.common.join("/");
+  const branch=x=>x.length?x.map((p,i)=>"<div class=\"tree-line\" style=\"--depth:"+i+"\"><span>└─</span><b>"+esc(p)+"</b></div>").join(""):"<div class=\"tree-line\"><span>└─</span><b>stessa posizione</b></div>";
+  return "<section class=\"folder-relation-box\">"+
+    "<div class=\"relation-box-head\"><div><span class=\"eyebrow\">POSIZIONE E RELAZIONE</span><h4>"+esc(r.label)+"</h4></div><span class=\"relation-confidence\">Confidenza "+esc(r.confidence)+"</span></div>"+
+    "<div class=\"tree-common\"><span>Radice comune</span><strong>"+esc(common||"Nessuna radice comune significativa")+"</strong></div>"+
+    "<div class=\"tree-branches\"><div class=\"tree-branch\"><span class=\"tree-badge\">A</span>"+branch(r.branchA)+"</div><div class=\"tree-branch\"><span class=\"tree-badge\">B</span>"+branch(r.branchB)+"</div></div>"+
+    "<p class=\"relation-reason\"><strong>Perché:</strong> "+esc(r.reason)+"</p>"+
+  "</section>";
+}
 function renderFolderDuplicateCard(fg){
   const gs=duplicateGroupsForFolder(fg);
   const verified=folderGroupFullyVerified(fg);
@@ -244,6 +290,7 @@ function renderFolderDuplicateCard(fg){
   }).join("");
   return "<article class=\"duplicate-folder-card\">"+
     "<div class=\"duplicate-folder-head\"><div><span class=\"eyebrow\">COPPIA DI CARTELLE</span><h3>"+esc(basename(fg.a))+" ↔ "+esc(basename(fg.b))+"</h3><p>"+fg.matches+" file in comune • "+fmt(fg.bytes)+" duplicati potenziali</p></div><span class=\"folder-verify-state\">"+(verified?"Identici verificati":"Da verificare")+"</span></div>"+
+    renderPathTree(fg)+
     "<div class=\"duplicate-folder-paths\">"+
       "<div class=\"folder-choice "+(keep==="A"?"selected-folder":"")+"\"><span>Cartella A</span><strong>"+esc(fg.a)+"</strong><small>"+fg.countA+" file</small><button class=\"btn ghost\" onclick=\"chooseFolderKeep('"+fg.id+"','A')\">Mantieni A</button></div>"+
       "<div class=\"folder-choice "+(keep==="B"?"selected-folder":"")+"\"><span>Cartella B</span><strong>"+esc(fg.b)+"</strong><small>"+fg.countB+" file</small><button class=\"btn ghost\" onclick=\"chooseFolderKeep('"+fg.id+"','B')\">Mantieni B</button></div>"+
