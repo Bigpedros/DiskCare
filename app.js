@@ -1,7 +1,7 @@
 const state={
   files:[],duplicateGroups:[],folderGroups:[],opportunities:[],selectedOps:new Set(),
   profile:"normal",pendingProfile:"normal",quarantine:[],rootName:"",rootHandle:null,verifyRunning:false,
-  transfer:{sourceType:null,fileHandles:[],folderHandle:null,destHandle:null}
+  transfer:{sourceType:null,fileHandles:[],folderHandle:null,destHandle:null},compare:{a:null,b:null,mapA:null,mapB:null,onlyA:[],onlyB:[],same:[],conflicts:[]}
 };
 const $=id=>document.getElementById(id);
 const fmt=b=>{if(!b||b<1)return"0 B";const u=["B","KB","MB","GB","TB"];const i=Math.min(4,Math.floor(Math.log(b)/Math.log(1024)));return(b/1024**i).toFixed(i?1:0)+" "+u[i]};
@@ -475,6 +475,102 @@ $("resetPerformanceBtn").onclick=()=>{state.pendingProfile="normal";applyProfile
 function applyTheme(theme){const valid=["payblue","dark","soft","graphite","ocean","warm"],t=valid.includes(theme)?theme:"payblue";document.body.dataset.theme=t;document.querySelectorAll("[data-theme-choice]").forEach(b=>b.classList.toggle("selected",b.dataset.themeChoice===t));const st=$("themeSavedState");if(st)st.textContent="Salvato";return t}
 function loadSavedTheme(){const saved=localStorage.getItem("diskcare.theme")||"payblue";applyTheme(saved)}
 document.querySelectorAll("[data-theme-choice]").forEach(b=>b.onclick=()=>{const t=applyTheme(b.dataset.themeChoice);localStorage.setItem("diskcare.theme",t)});
+
+function setTransferMode(mode){
+  $("transferStart").style.display=mode?"none":"grid";
+  $("compareWorkspace").classList.toggle("active-transfer-panel",mode==="compare");
+  $("transferWorkspace").classList.toggle("active-transfer-panel",mode==="copy");
+}
+function resetTransferMode(){
+  setTransferMode(null);
+  $("compareResults").hidden=true;$("compareSummary").hidden=true;$("compareMergeActions").hidden=true;
+}
+$("changeTransferMode").onclick=resetTransferMode;
+$("changeTransferMode2").onclick=resetTransferMode;
+
+async function chooseCompareFolder(which){
+  if(!window.showDirectoryPicker){alert("Per confrontare cartelle usa Chrome o Edge aggiornato.");return}
+  try{
+    const h=await showDirectoryPicker({mode:"readwrite"});
+    state.compare[which]=h;
+    $(which==="a"?"compareALabel":"compareBLabel").textContent=h.name;
+    $("runFolderCompare").disabled=!(state.compare.a&&state.compare.b);
+    $("compareStatus").textContent=state.compare.a&&state.compare.b?"Le due cartelle sono pronte per il confronto.":"Seleziona anche l'altra cartella.";
+  }catch(e){}
+}
+$("pickCompareA").onclick=()=>chooseCompareFolder("a");
+$("pickCompareB").onclick=()=>chooseCompareFolder("b");
+
+async function inventoryDir(handle,prefix="",map=new Map()){
+  for await(const [name,entry] of handle.entries()){
+    const rel=prefix?prefix+"/"+name:name;
+    if(entry.kind==="directory")await inventoryDir(entry,rel,map);
+    else{
+      try{const file=await entry.getFile();map.set(norm(rel).toLowerCase(),{rel,handle:entry,file,size:file.size,name:file.name})}catch(e){}
+    }
+  }
+  return map;
+}
+async function compareTwoFolders(){
+  if(!state.compare.a||!state.compare.b)return;
+  $("runFolderCompare").disabled=true;$("compareTitle").textContent="Confronto in corso…";$("compareStatus").textContent="DiskCare sta leggendo le due cartelle.";
+  const [A,B]=await Promise.all([inventoryDir(state.compare.a),inventoryDir(state.compare.b)]);
+  state.compare.mapA=A;state.compare.mapB=B;state.compare.onlyA=[];state.compare.onlyB=[];state.compare.same=[];state.compare.conflicts=[];
+  const keys=new Set([...A.keys(),...B.keys()]);
+  for(const key of keys){
+    const a=A.get(key),b=B.get(key);
+    if(a&&!b){state.compare.onlyA.push(a);continue}
+    if(b&&!a){state.compare.onlyB.push(b);continue}
+    if(a&&b){
+      if(a.size!==b.size){state.compare.conflicts.push({a,b,reason:"dimensione diversa"});continue}
+      const same=await verifyFileObjects(a.file,b.file);
+      if(same===true)state.compare.same.push({a,b});
+      else if(same===false)state.compare.conflicts.push({a,b,reason:"contenuto diverso"});
+      else state.compare.conflicts.push({a,b,reason:"file grande: verifica completa non disponibile nella PWA"});
+    }
+  }
+  $("compareSame").textContent=state.compare.same.length.toLocaleString("it-IT");
+  $("compareOnlyA").textContent=state.compare.onlyA.length.toLocaleString("it-IT");
+  $("compareOnlyB").textContent=state.compare.onlyB.length.toLocaleString("it-IT");
+  $("compareConflicts").textContent=state.compare.conflicts.length.toLocaleString("it-IT");
+  $("compareResults").hidden=false;$("compareSummary").hidden=false;$("compareMergeActions").hidden=false;
+  $("compareTitle").textContent="Confronto completato";
+  $("compareStatus").textContent="Ora puoi copiare solo ciò che manca. I file diversi non verranno sovrascritti.";
+  const recoverA=state.compare.onlyB.reduce((s,x)=>s+x.size,0),recoverB=state.compare.onlyA.reduce((s,x)=>s+x.size,0);
+  $("compareSummary").innerHTML="<strong>"+esc(state.compare.a.name)+" ↔ "+esc(state.compare.b.name)+"</strong><br>"+
+    state.compare.same.length+" file identici • "+state.compare.conflicts.length+" conflitti da controllare.<br>"+
+    "Da A verso B mancano "+state.compare.onlyA.length+" file ("+fmt(recoverB)+"). Da B verso A mancano "+state.compare.onlyB.length+" file ("+fmt(recoverA)+").";
+  $("runFolderCompare").disabled=false;
+}
+$("runFolderCompare").onclick=compareTwoFolders;
+
+async function destinationForRelative(root,rel){
+  const parts=norm(rel).split("/"),name=parts.pop();let dir=root;
+  for(const p of parts)dir=await dir.getDirectoryHandle(p,{create:true});
+  return{dir,name};
+}
+async function copyMissingList(list,destRoot,label){
+  if(!list.length){alert("Non ci sono file mancanti da copiare "+label+".");return}
+  let done=0;
+  for(const item of list){
+    const target=await destinationForRelative(destRoot,item.rel);
+    let existing=false;try{await target.dir.getFileHandle(target.name);existing=true}catch(e){}
+    if(existing)continue;
+    const dh=await copyFileObjectToDir(item.file,target.dir,target.name),dst=await dh.getFile();
+    const ok=await verifyFileObjects(item.file,dst);
+    if(ok!==true)throw new Error("Copia eseguita ma verifica non completa per "+item.rel+". L'origine è stata mantenuta.");
+    done++;
+  }
+  alert(done+" file copiati e verificati. Nessun file esistente è stato sovrascritto.");
+  await compareTwoFolders();
+}
+$("mergeAtoB").onclick=async()=>{try{await copyMissingList(state.compare.onlyA,state.compare.b,"da A a B")}catch(e){alert(e.message)}};
+$("mergeBtoA").onclick=async()=>{try{await copyMissingList(state.compare.onlyB,state.compare.a,"da B a A")}catch(e){alert(e.message)}};
+$("resetCompare").onclick=()=>{state.compare={a:null,b:null,mapA:null,mapB:null,onlyA:[],onlyB:[],same:[],conflicts:[]};$("compareALabel").textContent="Non selezionata";$("compareBLabel").textContent="Non selezionata";$("runFolderCompare").disabled=true;$("compareResults").hidden=true;$("compareSummary").hidden=true;$("compareMergeActions").hidden=true;$("compareTitle").textContent="Scegli le due cartelle";$("compareStatus").textContent="DiskCare confronterà la struttura prima di proporti qualsiasi operazione."};
+
+$("startCompareFolders").onclick=()=>{setTransferMode("compare");chooseCompareFolder("a")};
+$("startCopyFolder").onclick=()=>{setTransferMode("copy");$("transferModeTitle").textContent="Copia una cartella completa";$("pickFolderBtn").click()};
+$("startCopyFiles").onclick=()=>{setTransferMode("copy");$("transferModeTitle").textContent="Copia file selezionati";$("pickFilesBtn").click()};
 
 function transferLog(msg){const box=$("transferLog");box.textContent+=(box.textContent?"\n":"")+msg;box.scrollTop=box.scrollHeight}
 function setTransferProgress(p,msg){$("transferProgress").style.width=p+"%";$("transferStatus").textContent=msg}
