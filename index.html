@@ -37,7 +37,7 @@
 <main class="main">
 <section id="overview" class="view active-view">
   <header class="topbar home-topbar">
-    <div class="title-with-logo"><img src="assets/diskcare-icon.png" class="hero-logo" alt=""><div><span class="eyebrow home-eyebrow">DISKCARE • PULIZIA GUIDATA</span><h1>Cosa vuoi fare?</h1><p>Scegli un obiettivo. DiskCare ti guiderà senza cancellare nulla in silenzio.</p></div></div>
+    <div class="title-with-logo"><img src="assets/diskcare-icon.png" class="hero-logo" alt=""><div><span class="eyebrow home-eyebrow">DISKCARE • PULIZIA GUIDATA</span><h1 id="homeTitle">Cosa vuoi fare?</h1><p id="homeSubtitle">Scegli un obiettivo. DiskCare ti guiderà senza cancellare nulla in silenzio.</p></div></div>
     <div class="top-actions"><button class="btn ghost" id="demoBtn">Prova con dati demo</button></div>
   </header>
 
@@ -91,20 +91,50 @@
   </section>
 
   <section class="result-overview">
-    <div class="result-title"><div><span class="eyebrow">RISULTATO</span><h2>Quando l'analisi termina, parti da qui</h2></div><button class="btn ghost" id="openOppBtn">Apri risultati</button></div>
-    <section class="recovery-grid simple-recovery">
-      <article class="recovery-card verified"><span>Sicuro / verificato</span><strong id="verifiedRecover">0 B</strong><small>Elementi già confermati</small></article>
-      <article class="recovery-card potential"><span>Da controllare</span><strong id="potentialRecover">0 B</strong><small>Serve una verifica o una scelta</small></article>
-      <article class="recovery-card selected"><span>Hai selezionato</span><strong id="selectedRecover">0 B</strong><small>Spazio pronto per la fase finale</small></article>
-      <article class="recovery-card total"><span>Spazio analizzato</span><strong id="spaceTotal">0 B</strong><small>Totale indicizzato</small></article>
+    <div class="result-title">
+      <div><span class="eyebrow">ANALISI COMPLETATA</span><h2>Ecco cosa abbiamo trovato</h2><p id="scanScopeText">Qui trovi il riepilogo del percorso analizzato.</p></div>
+    </div>
+
+    <section class="scan-summary-card">
+      <div><span>Percorso analizzato</span><strong id="homeScanRoot">—</strong></div>
+      <div><span>File</span><strong id="homeFileCount">0</strong></div>
+      <div><span>Cartelle</span><strong id="homeFolderCount">0</strong></div>
+      <div><span>Spazio analizzato</span><strong id="spaceTotal">0 B</strong></div>
     </section>
-    <section class="decision-strip">
-      <div class="decision-item keep"><b id="keepCount">0</b><span>Da conservare</span></div>
-      <div class="decision-item good"><b id="safeCount">0</b><span>Pulizia consigliata</span></div>
-      <div class="decision-item warn"><b id="checkCount">0</b><span>Richiedono scelta</span></div>
-      <div class="decision-item protect"><b id="protectCount">0</b><span>Protetti</span></div>
+
+    <section class="recover-hero">
+      <span>Spazio potenzialmente recuperabile</span>
+      <strong id="potentialRecover">0 B</strong>
+      <small>È una stima: DiskCare non elimina nulla senza verifica o tua scelta.</small>
     </section>
-    <section class="panel calm-panel"><div class="panel-head"><div><h2>Prime opportunità</h2><span>Mostriamo prima ciò che è più utile e meno rischioso.</span></div></div><div id="topOpportunities" class="opportunity-list"><div class="empty-state"><strong>Nessun dato</strong><span>Avvia una scansione o carica la demo.</span></div></div></section>
+
+    <section class="home-category-grid">
+      <article class="home-category-card">
+        <div class="home-category-icon">≡</div>
+        <div><h3>File duplicati</h3><p>Copie dello stesso file trovate in punti diversi.</p><strong id="homeDupGroups">0 gruppi</strong><span id="homeDupBytes">0 B recuperabili</span></div>
+        <button class="btn ghost" onclick="document.querySelector('[data-section=&quot;duplicates&quot;]').click()">Controlla</button>
+      </article>
+      <article class="home-category-card">
+        <div class="home-category-icon">▣</div>
+        <div><h3>Cartelle uguali o simili</h3><p>Cartelle che contengono molti degli stessi file.</p><strong id="homeFolderGroups">0 gruppi</strong><span id="homeFolderBytes">0 B recuperabili</span></div>
+        <button class="btn ghost" onclick="document.querySelector('[data-section=&quot;folders&quot;]').click()">Confronta</button>
+      </article>
+      <article class="home-category-card">
+        <div class="home-category-icon">↻</div>
+        <div><h3>File temporanei e ricreabili</h3><p>File di lavoro che i programmi possono normalmente ricreare.</p><strong id="homeCacheCount">0 elementi</strong><span id="homeCacheBytes">0 B recuperabili</span></div>
+        <button class="btn ghost" onclick="document.querySelector('[data-section=&quot;opportunities&quot;]').click()">Controlla</button>
+      </article>
+      <article class="home-category-card">
+        <div class="home-category-icon">?</div>
+        <div><h3>Da valutare</h3><p>Elementi per cui DiskCare preferisce chiedere a te.</p><strong id="homeReviewCount">0 elementi</strong><span>Nessuna scelta automatica</span></div>
+        <button class="btn ghost" onclick="document.querySelector('[data-section=&quot;review&quot;]').click()">Fammi vedere</button>
+      </article>
+    </section>
+
+    <section class="home-plain-summary">
+      <div><strong id="homeKeepText">0 file non richiedono interventi</strong><span id="homeProtectedText">0 file protetti</span></div>
+      <button class="btn primary" id="openOppBtn">Vai a Recupera spazio</button>
+    </section>
   </section>
 
   <section class="quarantine-row" id="openQuarantine"><div class="q-icon">↩</div><div class="q-copy"><strong>Quarantena DiskCare</strong><span id="qCompactText">0 file • 0 B • tutto ripristinabile</span></div><button class="text-btn">Apri →</button></section>
