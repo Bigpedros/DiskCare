@@ -1,7 +1,10 @@
 {
+  "id": "./",
   "name": "DiskCare",
   "short_name": "DiskCare",
-  "start_url": "/",
+  "description": "Analisi prudente dello spazio, duplicati, consolidamento e trasferimenti verificati.",
+  "start_url": "./",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#f7f1d8",
   "theme_color": "#f2cf5b",
