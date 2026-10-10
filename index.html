@@ -227,31 +227,85 @@
 </section>
 
 <section id="transfer" class="view">
-  <header class="topbar"><div><h1>Copia o unisci</h1><p>Scegli origine e destinazione. DiskCare verifica la copia prima di toccare l'origine.</p></div></header>
-  <section class="transfer-grid">
-    <article class="transfer-card">
-      <span class="eyebrow">ORIGINE</span>
-      <h2 id="transferSourceLabel">Nessuna origine</h2>
-      <p id="transferSourceMeta">Scegli uno o più file oppure una cartella.</p>
-      <div class="action-row"><button class="btn ghost" id="pickFilesBtn">Scegli file</button><button class="btn ghost" id="pickFolderBtn">Scegli cartella</button></div>
+  <header class="topbar"><div><span class="eyebrow">COPIA E UNISCI</span><h1>Cosa vuoi fare?</h1><p>Scegli l'operazione. DiskCare ti guiderà passo per passo senza sovrascrivere file diversi in silenzio.</p></div></header>
+
+  <section class="transfer-start-grid" id="transferStart">
+    <article class="transfer-start-card">
+      <div class="transfer-start-icon">⇄</div>
+      <h2>Confronta due cartelle</h2>
+      <p>Scopri cosa hanno in comune, cosa manca e dove esistono file diversi prima di unire.</p>
+      <button class="btn primary" id="startCompareFolders">Confronta due cartelle</button>
     </article>
-    <article class="transfer-card">
-      <span class="eyebrow">DESTINAZIONE</span>
-      <h2 id="transferDestLabel">Nessuna destinazione</h2>
-      <p id="transferDestMeta">La destinazione deve essere autorizzata in scrittura.</p>
-      <button class="btn ghost" id="pickDestBtn">Scegli destinazione</button>
+    <article class="transfer-start-card">
+      <div class="transfer-start-icon">▣</div>
+      <h2>Copia una cartella completa</h2>
+      <p>Seleziona tutta la cartella come origine e poi scegli dove copiarla.</p>
+      <button class="btn ghost" id="startCopyFolder">Scegli cartella completa</button>
+    </article>
+    <article class="transfer-start-card">
+      <div class="transfer-start-icon">≡</div>
+      <h2>Copia file selezionati</h2>
+      <p>Scegli solo alcuni file e trasferiscili verso un'altra cartella.</p>
+      <button class="btn ghost" id="startCopyFiles">Scegli file</button>
     </article>
   </section>
-  <section class="panel transfer-panel">
-    <div class="panel-head"><div><h2>Operazione</h2><span>Copia mantiene l'origine. Sposta elimina l'origine solo dopo verifica hash riuscita.</span></div></div>
-    <div class="transfer-options">
-      <label><input type="checkbox" id="verifyAfterCopy" checked> Verifica SHA-256 dopo la copia</label>
-      <label><input type="checkbox" id="preserveFolderName" checked> Mantieni il nome della cartella origine</label>
+
+  <section class="compare-workspace hidden-transfer-panel" id="compareWorkspace">
+    <div class="workspace-head">
+      <div><span class="eyebrow">CONFRONTO CARTELLE</span><h2 id="compareTitle">Scegli le due cartelle</h2><p id="compareStatus">DiskCare confronterà la struttura prima di proporti qualsiasi operazione.</p></div>
+      <button class="btn ghost" id="changeTransferMode">Cambia operazione</button>
     </div>
-    <div class="action-row transfer-actions"><button class="btn primary" id="copyBtn">Copia</button><button class="btn danger" id="moveBtn">Sposta in sicurezza</button><button class="btn ghost" id="clearTransferBtn">Azzera</button></div>
-    <div class="progress-track"><div class="progress-bar" id="transferProgress"></div></div>
-    <p class="status" id="transferStatus">Pronto.</p>
-    <div id="transferLog" class="transfer-log"></div>
+    <div class="compare-pickers">
+      <article><span>Cartella A</span><strong id="compareALabel">Non selezionata</strong><button class="btn ghost" id="pickCompareA">Scegli A</button></article>
+      <article><span>Cartella B</span><strong id="compareBLabel">Non selezionata</strong><button class="btn ghost" id="pickCompareB">Scegli B</button></article>
+    </div>
+    <div class="compare-actions-top"><button class="btn primary" id="runFolderCompare" disabled>Analizza differenze</button></div>
+
+    <section class="compare-results" id="compareResults" hidden>
+      <article><span>Presenti in entrambe</span><strong id="compareSame">0</strong><small>File con stesso contenuto</small></article>
+      <article><span>Solo in A</span><strong id="compareOnlyA">0</strong><small>Mancano nella cartella B</small></article>
+      <article><span>Solo in B</span><strong id="compareOnlyB">0</strong><small>Mancano nella cartella A</small></article>
+      <article class="compare-conflicts"><span>Da controllare</span><strong id="compareConflicts">0</strong><small>Stesso percorso ma contenuto diverso</small></article>
+    </section>
+
+    <div class="compare-summary" id="compareSummary" hidden></div>
+    <div class="compare-merge-actions" id="compareMergeActions" hidden>
+      <button class="btn primary" id="mergeAtoB">Copia i mancanti A → B</button>
+      <button class="btn primary" id="mergeBtoA">Copia i mancanti B → A</button>
+      <button class="btn ghost" id="resetCompare">Ricomincia confronto</button>
+    </div>
+  </section>
+
+  <section class="transfer-workspace hidden-transfer-panel" id="transferWorkspace">
+    <div class="workspace-head">
+      <div><span class="eyebrow">COPIA / SPOSTA</span><h2 id="transferModeTitle">Seleziona origine e destinazione</h2><p>Prima viene eseguita la copia; l'origine viene toccata solo quando la verifica è riuscita.</p></div>
+      <button class="btn ghost" id="changeTransferMode2">Cambia operazione</button>
+    </div>
+    <section class="transfer-grid">
+      <article class="transfer-card">
+        <span class="eyebrow">ORIGINE</span>
+        <h2 id="transferSourceLabel">Nessuna origine</h2>
+        <p id="transferSourceMeta">Scegli uno o più file oppure una cartella completa.</p>
+        <div class="action-row"><button class="btn ghost" id="pickFilesBtn">Scegli file</button><button class="btn ghost" id="pickFolderBtn">Scegli cartella</button></div>
+      </article>
+      <article class="transfer-card">
+        <span class="eyebrow">DESTINAZIONE</span>
+        <h2 id="transferDestLabel">Nessuna destinazione</h2>
+        <p id="transferDestMeta">La destinazione deve essere autorizzata in scrittura.</p>
+        <button class="btn ghost" id="pickDestBtn">Scegli destinazione</button>
+      </article>
+    </section>
+    <section class="panel transfer-panel">
+      <div class="panel-head"><div><h2>Operazione</h2><span>Copia mantiene l'origine. Sposta elimina l'origine solo dopo verifica riuscita.</span></div></div>
+      <div class="transfer-options">
+        <label><input type="checkbox" id="verifyAfterCopy" checked> Verifica il contenuto dopo la copia</label>
+        <label><input type="checkbox" id="preserveFolderName" checked> Mantieni il nome della cartella origine</label>
+      </div>
+      <div class="action-row transfer-actions"><button class="btn primary" id="copyBtn">Copia</button><button class="btn danger" id="moveBtn">Sposta in sicurezza</button><button class="btn ghost" id="clearTransferBtn">Azzera</button></div>
+      <div class="progress-track"><div class="progress-bar" id="transferProgress"></div></div>
+      <p class="status" id="transferStatus">Pronto.</p>
+      <div id="transferLog" class="transfer-log"></div>
+    </section>
   </section>
 </section>
 
