@@ -9,7 +9,7 @@
 <link rel="icon" href="assets/diskcare-icon.png" type="image/png">
 <link rel="stylesheet" href="styles.css">
 </head>
-<body>
+<body data-theme="payblue">
 <div class="app-shell">
 <aside class="sidebar">
   <div class="brand-wrap"><img src="assets/diskcare-icon.png" class="brand-icon" alt="DiskCare"><div><div class="brand">DiskCare</div><div class="brand-sub">Analizza • Recupera • Protegge</div></div></div>
@@ -20,6 +20,7 @@
     <button class="nav-item" data-section="duplicates">Duplicati <span id="dupBadge">0</span></button>
     <button class="nav-item" data-section="transfer">Copia e unisci</button>
     <button class="nav-item" data-section="quarantine">Quarantena <span id="qBadge">0</span></button>
+    <button class="nav-item" data-section="settings">Impostazioni</button>
     <details class="advanced-nav">
       <summary>Strumenti avanzati</summary>
       <div class="advanced-nav-list">
@@ -27,7 +28,6 @@
         <button class="nav-item" data-section="residuals">Residui sicuri <span id="residualBadge">0</span></button>
         <button class="nav-item" data-section="review">Da valutare <span id="reviewBadge">0</span></button>
         <button class="nav-item" data-section="protected">Non toccare <span id="protectBadge">0</span></button>
-        <button class="nav-item" data-section="performance">Prestazioni</button>
       </div>
     </details>
   </nav>
@@ -174,11 +174,45 @@
   <section class="panel"><div class="panel-head"><h2>File in quarantena</h2><input id="qSearch" placeholder="Cerca"></div><div id="qTableWrap" class="table-wrap"></div></section>
 </section>
 
-<section id="performance" class="view">
-  <header class="topbar"><div><h1>Prestazioni</h1><p>Adatta il carico alle risorse del PC e salva la preferenza.</p></div></header>
-  <section class="performance-card"><div class="performance-head"><div><span class="eyebrow">PROFILO PRESTAZIONI</span><h2 id="performanceSavedLabel">Normale</h2><p id="performanceSavedText">La scelta salvata verrà riutilizzata alla prossima apertura.</p></div><span class="saved-state" id="performanceSavedState">Salvato</span></div>
-    <section class="profile-page"><button class="profile-option" data-profile="light"><strong>Leggera</strong><span>4 GB RAM • priorità alla reattività</span></button><button class="profile-option selected" data-profile="normal"><strong>Normale</strong><span>8 GB+ • equilibrio</span></button><button class="profile-option" data-profile="fast"><strong>Massima</strong><span>16 GB+ • più parallelismo</span></button></section>
-    <div class="performance-actions"><button class="btn primary" id="savePerformanceBtn">Salva impostazione</button><button class="btn ghost" id="resetPerformanceBtn">Ripristina Normale</button></div>
+<section id="settings" class="view">
+  <header class="topbar"><div><h1>Impostazioni</h1><p>Personalizza l'aspetto di DiskCare e scegli quante risorse usare durante le analisi.</p></div></header>
+
+  <section class="settings-stack">
+    <article class="settings-card">
+      <div class="settings-card-head">
+        <div><span class="eyebrow">ASPETTO</span><h2>Tema</h2><p>Scegli la combinazione che trovi più riposante. La scelta viene salvata automaticamente.</p></div>
+        <span class="saved-state" id="themeSavedState">Salvato</span>
+      </div>
+      <div class="theme-grid">
+        <button class="theme-option" data-theme-choice="payblue"><span class="theme-preview payblue"><i></i><i></i><i></i></span><strong>Pay Blue</strong><small>Predefinito • stile PayFacile</small></button>
+        <button class="theme-option" data-theme-choice="dark"><span class="theme-preview dark"><i></i><i></i><i></i></span><strong>Dark</strong><small>Scuro e riposante</small></button>
+        <button class="theme-option" data-theme-choice="soft"><span class="theme-preview soft"><i></i><i></i><i></i></span><strong>Soft Light</strong><small>Chiaro, ma meno luminoso</small></button>
+        <button class="theme-option" data-theme-choice="graphite"><span class="theme-preview graphite"><i></i><i></i><i></i></span><strong>Graphite</strong><small>Neutro e tecnico</small></button>
+        <button class="theme-option" data-theme-choice="ocean"><span class="theme-preview ocean"><i></i><i></i><i></i></span><strong>Ocean</strong><small>Blu-verde morbido</small></button>
+        <button class="theme-option" data-theme-choice="warm"><span class="theme-preview warm"><i></i><i></i><i></i></span><strong>Warm Light</strong><small>Il tema chiaro originale</small></button>
+      </div>
+    </article>
+
+    <article class="settings-card">
+      <div class="settings-card-head">
+        <div><span class="eyebrow">PRESTAZIONI</span><h2>Velocità di lavoro</h2><p>Più alto è il profilo, più operazioni DiskCare può elaborare in parallelo.</p></div>
+        <span class="saved-state" id="performanceSavedState">Salvato</span>
+      </div>
+
+      <section class="profile-page settings-profiles">
+        <button class="profile-option" data-profile="light"><strong>Minimo</strong><span>4 GB RAM • priorità alla reattività del PC</span></button>
+        <button class="profile-option selected" data-profile="normal"><strong>Medio</strong><span>8 GB RAM • equilibrio consigliato</span></button>
+        <button class="profile-option" data-profile="fast"><strong>Massimo</strong><span>Oltre 8 GB RAM • più parallelismo</span></button>
+      </section>
+
+      <div class="settings-current">
+        <span>Profilo selezionato</span>
+        <strong id="performanceSavedLabel">Medio</strong>
+        <p id="performanceSavedText">La scelta salvata verrà riutilizzata alla prossima apertura.</p>
+      </div>
+
+      <div class="performance-actions"><button class="btn primary" id="savePerformanceBtn">Salva prestazioni</button><button class="btn ghost" id="resetPerformanceBtn">Ripristina Medio</button></div>
+    </article>
   </section>
 </section>
 
