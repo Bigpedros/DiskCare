@@ -385,3 +385,78 @@ body[data-theme="ocean"] .compare-workspace,
 body[data-theme="ocean"] .transfer-workspace{background:color-mix(in srgb,var(--surface) 92%,white 8%)}
 @media(max-width:1000px){.transfer-start-grid{grid-template-columns:1fr}.transfer-start-card{min-height:auto}.compare-results{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:700px){.compare-pickers,.compare-results{grid-template-columns:1fr}.workspace-head{flex-direction:column}}
+
+
+/* === PROGRESSO VISIBILE === */
+.progress-track{
+  position:relative;
+  min-height:34px;
+  height:34px;
+  border-radius:11px;
+  overflow:hidden;
+  display:flex;
+  align-items:center;
+  background:color-mix(in srgb,var(--panel3) 82%,black 18%);
+  border:1px solid var(--line);
+}
+.progress-bar{
+  height:100%!important;
+  min-height:34px;
+  border-radius:10px;
+}
+.progress-track::after{
+  content:attr(data-progress);
+  position:absolute;
+  inset:0;
+  display:grid;
+  place-items:center;
+  z-index:2;
+  pointer-events:none;
+  font-size:15px;
+  line-height:1;
+  font-weight:900;
+  color:#fff;
+  text-shadow:0 1px 3px rgba(0,0,0,.75);
+  letter-spacing:.02em;
+}
+.transfer-panel .progress-track{margin-top:12px}
+.profile-pill#verifyPercent{display:none!important}
+
+/* === DUPLICATI: CARTELLE PRIMA, FILE DOPO === */
+.duplicate-section-head{margin:18px 0 10px}
+.duplicate-section-head h2{margin:4px 0 3px;color:var(--ink);font-size:20px}
+.duplicate-section-head p{margin:0;color:var(--ink-muted);font-size:12px;line-height:1.45}
+.duplicate-files-head{margin-top:24px}
+.duplicate-folder-card{background:var(--surface);border:1px solid var(--surface-border);border-radius:15px;margin-bottom:12px;box-shadow:var(--shadow);overflow:hidden;color:var(--ink)}
+.duplicate-folder-head{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;padding:14px 16px;border-bottom:1px solid var(--surface-border)}
+.duplicate-folder-head h3{margin:2px 0 3px;font-size:17px;color:var(--ink)}
+.duplicate-folder-head p{margin:0;color:var(--ink-muted);font-size:11px}
+.folder-verify-state{font-size:11px;font-weight:800;color:var(--accent);white-space:nowrap}
+.duplicate-folder-paths{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:14px 16px 8px}
+.folder-choice{background:var(--surface-soft);border:1px solid var(--surface-border);border-radius:12px;padding:12px}
+.folder-choice.selected-folder{border-color:var(--accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 24%,transparent)}
+.folder-choice span,.folder-choice strong,.folder-choice small{display:block}
+.folder-choice span{font-size:10px;text-transform:uppercase;color:var(--ink-muted)}
+.folder-choice strong{font-size:14px;margin:4px 0;color:var(--ink);word-break:break-all}
+.folder-choice small{font-size:10px;color:var(--ink-muted)}
+.folder-choice .btn{margin-top:10px}
+.duplicate-folder-stats{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;padding:8px 16px 12px}
+.duplicate-folder-stats div{background:var(--surface-soft);border:1px solid var(--surface-border);border-radius:10px;padding:9px}
+.duplicate-folder-stats span,.duplicate-folder-stats b{display:block}
+.duplicate-folder-stats span{font-size:9px;text-transform:uppercase;color:var(--ink-muted)}
+.duplicate-folder-stats b{font-size:16px;margin-top:3px;color:var(--ink)}
+.duplicate-folder-actions{display:flex;gap:8px;flex-wrap:wrap;padding:0 16px 14px}
+.folder-duplicate-details{border-top:1px solid var(--surface-border);padding:12px 16px;background:var(--surface-soft)}
+.folder-duplicate-details[hidden]{display:none}
+.folder-file-row{display:grid;grid-template-columns:1fr auto;gap:12px;padding:8px 0;border-bottom:1px solid var(--surface-border)}
+.folder-file-row:last-child{border-bottom:0}
+.folder-file-row strong{display:block;font-size:12px;color:var(--ink)}
+.folder-file-row small{display:block;margin-top:2px;color:var(--ink-muted);font-size:10px;word-break:break-all}
+.folder-file-row span{font-size:11px;color:var(--accent);font-weight:800}
+.folder-action-note{padding:0 16px 13px;color:var(--ink-muted);font-size:10px}
+body[data-theme="payblue"] .duplicate-folder-card,
+body[data-theme="dark"] .duplicate-folder-card,
+body[data-theme="graphite"] .duplicate-folder-card,
+body[data-theme="ocean"] .duplicate-folder-card{background:color-mix(in srgb,var(--surface) 93%,white 7%)}
+@media(max-width:1050px){.duplicate-folder-stats{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:700px){.duplicate-folder-paths{grid-template-columns:1fr}.duplicate-folder-stats{grid-template-columns:repeat(2,1fr)}}
