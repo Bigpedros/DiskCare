@@ -339,3 +339,49 @@ body[data-theme="ocean"] .home-category-card strong,
 body[data-theme="ocean"] .home-plain-summary strong{color:#fff}
 @media(max-width:1000px){.scan-summary-card{grid-template-columns:repeat(2,1fr)}.scan-summary-card>div:nth-child(2){border-right:0}.home-category-grid{grid-template-columns:1fr}}
 @media(max-width:650px){.scan-summary-card{grid-template-columns:1fr}.scan-summary-card>div{border-right:0;border-bottom:1px solid var(--surface-border)}.home-category-card{grid-template-columns:44px 1fr}.home-category-card>.btn{grid-column:2;justify-self:start}.home-plain-summary{flex-direction:column;align-items:flex-start}}
+
+
+/* === COPIA E UNISCI: PUNTO DI PARTENZA GUIDATO === */
+.transfer-start-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
+.transfer-start-card{background:var(--surface);border:1px solid var(--surface-border);border-radius:16px;padding:18px;box-shadow:var(--shadow);color:var(--ink);display:flex;flex-direction:column;min-height:225px}
+.transfer-start-card:first-child{border-color:var(--accent)}
+.transfer-start-icon{width:48px;height:48px;border-radius:13px;display:grid;place-items:center;background:var(--surface-soft);border:1px solid var(--surface-border);color:var(--accent);font-size:22px;font-weight:900;margin-bottom:13px}
+.transfer-start-card h2{font-size:18px;margin:0 0 7px;color:var(--ink)}
+.transfer-start-card p{font-size:12px;line-height:1.5;color:var(--ink-muted);margin:0 0 16px;flex:1}
+.transfer-start-card .btn{align-self:flex-start}
+.hidden-transfer-panel{display:none}
+.hidden-transfer-panel.active-transfer-panel{display:block}
+.compare-workspace,.transfer-workspace{background:var(--surface);border:1px solid var(--surface-border);border-radius:16px;padding:17px;box-shadow:var(--shadow);color:var(--ink)}
+.workspace-head{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;margin-bottom:14px}
+.workspace-head h2{margin:4px 0;font-size:20px;color:var(--ink)}
+.workspace-head p{margin:0;color:var(--ink-muted);font-size:12px}
+.compare-pickers{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.compare-pickers article{background:var(--surface-soft);border:1px solid var(--surface-border);border-radius:13px;padding:14px}
+.compare-pickers span,.compare-pickers strong{display:block}
+.compare-pickers span{font-size:10px;text-transform:uppercase;color:var(--ink-muted)}
+.compare-pickers strong{font-size:17px;margin:5px 0 12px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.compare-actions-top{margin-bottom:14px}
+.compare-results{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:14px 0}
+.compare-results article{background:var(--surface-soft);border:1px solid var(--surface-border);border-radius:12px;padding:13px}
+.compare-results span,.compare-results strong,.compare-results small{display:block}
+.compare-results span{font-size:10px;text-transform:uppercase;color:var(--ink-muted)}
+.compare-results strong{font-size:25px;margin:5px 0;color:var(--ink)}
+.compare-results small{font-size:10px;color:var(--ink-muted)}
+.compare-results .compare-conflicts{border-color:color-mix(in srgb,var(--warn) 65%,var(--surface-border))}
+.compare-summary{background:var(--surface-soft);border:1px solid var(--surface-border);border-radius:12px;padding:13px 14px;color:var(--ink);font-size:12px;line-height:1.5;margin-bottom:12px}
+.compare-summary strong{color:var(--ink)}
+.compare-merge-actions{display:flex;gap:8px;flex-wrap:wrap}
+body[data-theme="payblue"] .transfer-start-card,
+body[data-theme="payblue"] .compare-workspace,
+body[data-theme="payblue"] .transfer-workspace,
+body[data-theme="dark"] .transfer-start-card,
+body[data-theme="dark"] .compare-workspace,
+body[data-theme="dark"] .transfer-workspace,
+body[data-theme="graphite"] .transfer-start-card,
+body[data-theme="graphite"] .compare-workspace,
+body[data-theme="graphite"] .transfer-workspace,
+body[data-theme="ocean"] .transfer-start-card,
+body[data-theme="ocean"] .compare-workspace,
+body[data-theme="ocean"] .transfer-workspace{background:color-mix(in srgb,var(--surface) 92%,white 8%)}
+@media(max-width:1000px){.transfer-start-grid{grid-template-columns:1fr}.transfer-start-card{min-height:auto}.compare-results{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:700px){.compare-pickers,.compare-results{grid-template-columns:1fr}.workspace-head{flex-direction:column}}
