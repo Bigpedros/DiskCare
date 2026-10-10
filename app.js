@@ -239,10 +239,74 @@ function renderDuplicateGroups(){
   }).join(""):"<div class=\"empty-state\"><strong>Nessun gruppo duplicato</strong></div>";
 }
 window.setKeep=(gid,fid)=>{const g=state.duplicateGroups.find(x=>x.id===gid);if(g)g.keepId=fid};
+async function prepareDuplicateScan(){
+  if(state.files.length>0&&state.duplicateGroups.length>=0)return true;
+  if(!window.showDirectoryPicker){
+    alert("Per cercare i duplicati usa Chrome o Edge aggiornato.");
+    return false;
+  }
+  try{
+    $("verifyPhase").textContent="Scegli una cartella";
+    $("verifyText").textContent="Seleziona il disco o la cartella in cui vuoi cercare i duplicati.";
+    $("verifyProgress").style.width="0%";
+    $("verifyPercent").textContent="0%";
+    const dir=await showDirectoryPicker({mode:"readwrite"});
+    state.rootName=dir.name;
+    state.rootHandle=dir;
+    $("verifyPhase").textContent="Analisi in corso";
+    $("verifyText").textContent="DiskCare sta cercando file con stesso nome e dimensione…";
+    const tr={count:0,start:Date.now()};
+    state.files=await walk(dir,dir.name,tr);
+    $("verifyProgress").style.width="45%";
+    $("verifyPercent").textContent="45%";
+    buildDuplicateGroups();
+    buildFolderGroups();
+    buildOpportunities();
+    recalc();
+    updateHomeAfterScan((Date.now()-tr.start)/1000);
+    renderDuplicateGroups();
+    return true;
+  }catch(e){
+    if(e.name==="AbortError"){
+      $("verifyPhase").textContent="Non avviata";
+      $("verifyText").textContent="Nessuna cartella selezionata.";
+      return false;
+    }
+    $("verifyPhase").textContent="Interrotta";
+    $("verifyText").textContent="Analisi interrotta: "+e.message;
+    return false;
+  }
+}
+
 $("verifyAllBtn").onclick=async()=>{
-  if(state.verifyRunning)return;state.verifyRunning=true;$("verifyPhase").textContent="In corso";
-  for(let i=0;i<state.duplicateGroups.length;i++){await verifyGroup(state.duplicateGroups[i].id);const p=Math.round((i+1)/Math.max(1,state.duplicateGroups.length)*100);$("verifyProgress").style.width=p+"%";$("verifyPercent").textContent=p+"%";$("verifyText").textContent=(i+1)+" / "+state.duplicateGroups.length+" gruppi";}
-  $("verifyPhase").textContent="Completata";state.verifyRunning=false;buildOpportunities();renderOpportunities();
+  if(state.verifyRunning)return;
+  const ready=await prepareDuplicateScan();
+  if(!ready)return;
+
+  if(state.duplicateGroups.length===0){
+    $("verifyPhase").textContent="Nessun duplicato trovato";
+    $("verifyText").textContent="Nel percorso analizzato non sono stati trovati gruppi di file duplicati.";
+    $("verifyProgress").style.width="100%";
+    $("verifyPercent").textContent="100%";
+    renderDuplicateGroups();
+    return;
+  }
+
+  state.verifyRunning=true;
+  $("verifyPhase").textContent="Verifica in corso";
+  $("verifyText").textContent="Confronto del contenuto dei file duplicati…";
+  for(let i=0;i<state.duplicateGroups.length;i++){
+    await verifyGroup(state.duplicateGroups[i].id);
+    const p=Math.round((i+1)/state.duplicateGroups.length*100);
+    $("verifyProgress").style.width=p+"%";
+    $("verifyPercent").textContent=p+"%";
+    $("verifyText").textContent=(i+1)+" / "+state.duplicateGroups.length+" gruppi verificati";
+  }
+  $("verifyPhase").textContent="Verifica completata";
+  $("verifyText").textContent=state.duplicateGroups.length+" gruppi controllati.";
+  state.verifyRunning=false;
+  buildOpportunities();
+  renderOpportunities();
 };
 
 async function verifyFolderGroup(id){
