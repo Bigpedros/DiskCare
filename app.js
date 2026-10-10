@@ -1,69 +1,389 @@
-const state={files:[],duplicateGroups:[],folderGroups:[],profile:"normal",pendingProfile:"normal",quarantine:[],rootName:"",verifyRunning:false};
-const $=id=>document.getElementById(id);const fmt=b=>{if(!b||b<1)return"0 B";const u=["B","KB","MB","GB","TB"];const i=Math.min(4,Math.floor(Math.log(b)/Math.log(1024)));return(b/1024**i).toFixed(i?1:0)+" "+u[i]};const esc=v=>String(v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));const norm=p=>p.replaceAll("\\","/").replace(/\/+/g,"/").replace(/\/$/,"");const dirname=p=>{const x=norm(p),i=x.lastIndexOf("/");return i>0?x.slice(0,i):x};const basename=p=>norm(p).split("/").pop()||norm(p);const ext=n=>{const i=n.lastIndexOf(".");return i>=0?n.slice(i).toLowerCase():""};const isMedia=e=>[".jpg",".jpeg",".png",".gif",".webp",".bmp",".mp3",".wav",".flac",".mp4",".mov",".avi",".mkv"].includes(e);const isDocument=e=>[".pdf",".doc",".docx",".xls",".xlsx",".ppt",".pptx",".txt",".rtf",".odt"].includes(e);const isArchive=e=>[".zip",".rar",".7z",".iso",".tar",".gz"].includes(e);const isInstaller=e=>[".exe",".msi",".msix",".appx"].includes(e);
-function isProtectedPath(path){const p=norm(path).toLowerCase();return p.includes("/system volume information/")||p.endsWith("/system volume information")||p.includes("/windows/")||p.includes("/program files/")||p.includes("/program files (x86)/")||p.includes("/programdata/")||p.includes("/$recycle.bin/")}
-function isResidualFile(f){const n=f.name.toLowerCase(),p=norm(f.path).toLowerCase();if([".ds_store","thumbs.db","desktop.ini","ehthumbs.db"].includes(n))return true;if(n.startsWith("~$")||n.endsWith(".tmp")||n.endsWith(".temp"))return true;if((p.includes("/temp/")||p.includes("/cache/"))&&f.old&&f.size<200*1024*1024)return true;return false}
-function buildDuplicateGroups(){const map={};for(const f of state.files){if(!f.size||isProtectedPath(f.path))continue;const key=f.name.toLowerCase()+"|"+f.size;(map[key]??=[]).push(f)}state.duplicateGroups=Object.values(map).filter(g=>g.length>1).map((files,i)=>({id:"g"+i,files,verified:false,identical:null,hashes:{},keepId:files[0].id}))}
-function commonAncestors(path,depth=4){const d=dirname(path),parts=norm(d).split("/"),out=[];for(let up=0;up<Math.min(depth,parts.length-1);up++){const a=parts.slice(0,parts.length-up).join("/");if(a&&a.length>1)out.push(a)}return out}
-function fileIsUnder(f,folder){const p=norm(f.path).toLowerCase(),d=norm(folder).toLowerCase();return p===d||p.startsWith(d+"/")}
-function relativeTo(f,folder){const p=norm(f.path),d=norm(folder);return p.toLowerCase().startsWith((d+"/").toLowerCase())?p.slice(d.length+1):basename(p)}
-function buildFolderGroups(){const candidates=new Map();for(const g of state.duplicateGroups){const files=g.files.slice(0,8);for(let i=0;i<files.length;i++)for(let j=i+1;j<files.length;j++){const A=commonAncestors(files[i].path,4),B=commonAncestors(files[j].path,4);for(const a of A)for(const b of B){if(a===b)continue;const pair=[a,b].sort(),key=pair[0]+"|||"+pair[1];if(!candidates.has(key))candidates.set(key,{a:pair[0],b:pair[1],matchedIds:new Set(),bytes:0});const c=candidates.get(key);if(!c.matchedIds.has(g.id)){c.matchedIds.add(g.id);c.bytes+=Math.min(...g.files.map(x=>x.size))}}}}const raw=[];for(const c of candidates.values()){if(c.matchedIds.size<3)continue;const filesA=state.files.filter(f=>fileIsUnder(f,c.a)),filesB=state.files.filter(f=>fileIsUnder(f,c.b));if(!filesA.length||!filesB.length)continue;const mapA=new Map(filesA.map(f=>[relativeTo(f,c.a).toLowerCase(),f])),mapB=new Map(filesB.map(f=>[relativeTo(f,c.b).toLowerCase(),f]));let same=0,sameBytes=0,onlyA=[],onlyB=[],changed=[];for(const [r,fa] of mapA){if(!mapB.has(r)){onlyA.push(fa);continue}const fb=mapB.get(r);if(fa.size===fb.size){same++;sameBytes+=Math.min(fa.size,fb.size)}else changed.push([fa,fb])}for(const [r,fb] of mapB)if(!mapA.has(r))onlyB.push(fb);const maxCount=Math.max(filesA.length,filesB.length),pct=maxCount?Math.round((same/maxCount)*1000)/10:0;if(same<3||pct<50)continue;raw.push({a:c.a,b:c.b,countA:filesA.length,countB:filesB.length,matches:same,bytes:sameBytes,pct,onlyA,onlyB,changed,verified:false})}raw.sort((x,y)=>(y.matches-x.matches)||(y.bytes-x.bytes));const kept=[];for(const r of raw){const dup=kept.some(k=>{const sides=(r.a.startsWith(k.a+"/")&&r.b.startsWith(k.b+"/"))||(r.a.startsWith(k.b+"/")&&r.b.startsWith(k.a+"/"));return sides&&k.matches>=r.matches*.9});if(!dup)kept.push(r);if(kept.length>=40)break}state.folderGroups=kept.map((x,i)=>({...x,id:"f"+i}))}
-function advice(f){if(f.protected||isProtectedPath(f.path))return{type:"protect",label:"Non toccare",reason:"File o percorso di sistema: DiskCare lo protegge automaticamente."};if(isResidualFile(f))return{type:"residual",label:"Residuo sicuro",reason:"Metadato o temporaneo di scarso valore. Candidato alla quarantena."};if(state.duplicateGroups.some(g=>g.files.some(x=>x.id===f.id)))return{type:"check",label:"Duplicato",reason:"Esiste almeno un'altra copia con stesso nome e dimensione. Verifica contenuto prima di agire."};const e=ext(f.name);if(isInstaller(e)&&f.old)return{type:"quarantine",label:"Pulizia consigliata",reason:"Installer vecchio: spesso resta dopo l'installazione. Prima in quarantena."};if(isArchive(e)&&f.old&&f.size>200*1024*1024)return{type:"check",label:"Da verificare",reason:"Archivio vecchio e voluminoso: può liberare spazio, ma potrebbe essere un backup."};if((isMedia(e)||isDocument(e))&&f.old)return{type:"keep",label:"Conserva",reason:"L'età da sola non rende sospetti documenti, foto, audio o video."};if(f.size>1024*1024*1024&&f.old)return{type:"check",label:"Da verificare",reason:"File molto grande e vecchio: controlla se è ancora utile."};return{type:"keep",label:"Conserva",reason:"Nessun indicatore forte di inutilità."}}
-function recalc(){buildDuplicateGroups();buildFolderGroups();const total=state.files.reduce((s,f)=>s+f.size,0),ads=state.files.map(advice),cnt=t=>ads.filter(a=>a.type===t).length;let dupRecover=0;state.duplicateGroups.forEach(g=>dupRecover+=g.files[0].size*(g.files.length-1));let residualRecover=state.files.filter(isResidualFile).reduce((s,f)=>s+f.size,0);$("spaceTotal").textContent=fmt(total);$("recoverable").textContent=fmt(dupRecover+residualRecover);$("dupGroupsCount").textContent=state.duplicateGroups.length;$("folderGroupsCount").textContent=state.folderGroups.length;$("keepCount").textContent=cnt("keep");$("safeCount").textContent=cnt("quarantine")+cnt("residual");$("checkCount").textContent=cnt("check");$("protectCount").textContent=cnt("protect");$("dupBadge").textContent=state.duplicateGroups.length;$("folderBadge").textContent=state.folderGroups.length;$("residualBadge").textContent=cnt("residual");$("reviewBadge").textContent=cnt("check");$("protectBadge").textContent=cnt("protect");renderAdvice();renderDuplicateGroups();renderFolderGroups();renderResiduals();renderReview();renderProtected()}
-function tableBadge(a){const cls=a.type==="quarantine"?"good":a.type;return `<span class="badge ${cls}">${a.label}</span>`}
-function renderAdvice(){let items=state.files.map(f=>({f,a:advice(f)})),fil=$("adviceFilter").value,q=$("searchInput").value.toLowerCase();if(fil!=="all")items=items.filter(x=>x.a.type===fil);if(q)items=items.filter(x=>(x.f.name+" "+x.f.path).toLowerCase().includes(q));items.sort((x,y)=>y.f.size-x.f.size);$("adviceWrap").innerHTML=items.length?`<table><thead><tr><th>Consiglio</th><th>File</th><th>Dimensione</th><th>Perché</th><th>Azione</th></tr></thead><tbody>${items.slice(0,350).map(({f,a})=>`<tr><td>${tableBadge(a)}</td><td><b>${esc(f.name)}</b><div class="path">${esc(f.path)}</div></td><td>${fmt(f.size)}</td><td class="reason">${esc(a.reason)}</td><td>${["quarantine","residual"].includes(a.type)?`<button class="mini-btn good" onclick="sendToQuarantine('${f.id}')">Quarantena</button>`:a.type==="check"?`<button class="mini-btn" onclick="focusFile('${f.id}')">Esamina</button>`:"—"}</td></tr>`).join("")}</tbody></table>`:'<div class="empty-state"><strong>Nessun elemento</strong></div>'}
-function renderResiduals(){const items=state.files.filter(isResidualFile).sort((a,b)=>b.size-a.size);$("residualWrap").innerHTML=items.length?`<table><thead><tr><th>Tipo</th><th>File</th><th>Dimensione</th><th>Percorso</th><th>Azione</th></tr></thead><tbody>${items.map(f=>`<tr><td><span class="badge residual">Residuo sicuro</span></td><td>${esc(f.name)}</td><td>${fmt(f.size)}</td><td class="path">${esc(f.path)}</td><td><button class="mini-btn good" onclick="sendToQuarantine('${f.id}')">Quarantena</button></td></tr>`).join("")}</tbody></table>`:'<div class="empty-state"><strong>Nessun residuo rilevato</strong></div>'}
-function renderReview(){const items=state.files.map(f=>({f,a:advice(f)})).filter(x=>["check","quarantine"].includes(x.a.type)).sort((x,y)=>y.f.size-x.f.size);$("reviewWrap").innerHTML=items.length?`<table><thead><tr><th>Consiglio</th><th>Nome</th><th>Dimensione</th><th>Motivazione</th><th>Azione</th></tr></thead><tbody>${items.map(({f,a})=>`<tr><td>${tableBadge(a)}</td><td>${esc(f.name)}<div class="path">${esc(f.path)}</div></td><td>${fmt(f.size)}</td><td class="reason">${esc(a.reason)}</td><td>${a.type==="quarantine"?`<button class="mini-btn good" onclick="sendToQuarantine('${f.id}')">Quarantena</button>`:"Verifica"}</td></tr>`).join("")}</tbody></table>`:'<div class="empty-state"><strong>Nessun file da valutare</strong></div>'}
-function renderProtected(){const items=state.files.filter(f=>advice(f).type==="protect");$("protectedWrap").innerHTML=items.length?`<table><thead><tr><th>Protezione</th><th>File</th><th>Dimensione</th><th>Percorso</th></tr></thead><tbody>${items.map(f=>`<tr><td><span class="badge protect">Non toccare</span></td><td>${esc(f.name)}</td><td>${fmt(f.size)}</td><td class="path">${esc(f.path)}</td></tr>`).join("")}</tbody></table>`:'<div class="empty-state"><strong>Nessun elemento protetto rilevato</strong></div>'}
-function renderDuplicateGroups(){if(!state.duplicateGroups.length){$("duplicateGroupsWrap").innerHTML='<div class="empty-state"><strong>Nessun gruppo duplicato</strong></div>';return}const groups=[...state.duplicateGroups].sort((a,b)=>(b.files[0].size*(b.files.length-1))-(a.files[0].size*(a.files.length-1)));$("duplicateGroupsWrap").innerHTML=groups.map(g=>`<article class="duplicate-group"><div class="dup-head"><div><strong>${esc(g.files[0].name)}</strong><span> • ${g.files.length} copie • ${fmt(g.files[0].size)} ciascuna • recuperabili ${fmt(g.files[0].size*(g.files.length-1))}</span></div><div class="action-row"><span class="hash-status">${g.verified?(g.identical?"Identici verificati":"Contenuto diverso"):"Da verificare"}</span><button class="mini-btn" onclick="verifyGroup('${g.id}')">Verifica identità</button><button class="mini-btn good" onclick="quarantineExtras('${g.id}')" ${g.verified&&g.identical?"":"disabled"}>Mantieni 1, quarantena altre</button></div></div><div class="dup-files">${g.files.map(f=>`<div class="dup-file"><input class="radio" type="radio" name="keep-${g.id}" ${g.keepId===f.id?"checked":""} onchange="setKeep('${g.id}','${f.id}')"><div><div class="dup-name">${esc(f.name)}</div><div class="dup-path">${esc(f.path)}</div></div><div>${fmt(f.size)}</div><div class="dup-actions">${g.keepId===f.id?'<span class="badge keep">Conserva</span>':'<span class="badge warn">Copia</span>'}</div></div>`).join("")}</div></article>`).join("")}
-function renderDiffPreview(g){const rows=[];g.onlyA.slice(0,4).forEach(f=>rows.push("Solo A: "+esc(relativeTo(f,g.a))));g.onlyB.slice(0,4).forEach(f=>rows.push("Solo B: "+esc(relativeTo(f,g.b))));g.changed.slice(0,4).forEach(pair=>rows.push("Diverso: "+esc(relativeTo(pair[0],g.a))));return rows.length?rows.join("<br>"):"Nessuna differenza strutturale rilevata."}
-function renderFolderGroups(){if(!state.folderGroups.length){$("folderGroupsWrap").innerHTML='<div class="empty-state"><strong>Nessuna cartella candidata</strong></div>';return}$("folderGroupsWrap").innerHTML=state.folderGroups.map(g=>`<article class="folder-card"><div class="folder-head"><div><strong>Possibile albero duplicato</strong><span> • ${g.matches} file equivalenti</span></div><span class="badge ${g.pct>=90?"good":"warn"}">${g.pct}% corrispondenza</span></div><div class="folder-body"><div class="folder-compare"><div class="folder-path">${esc(g.a)}</div><div class="versus">VS</div><div class="folder-path">${esc(g.b)}</div></div><div class="folder-stats"><div class="folder-stat"><span>FILE IN A</span><b>${g.countA}</b></div><div class="folder-stat"><span>FILE IN B</span><b>${g.countB}</b></div><div class="folder-stat"><span>UGUALI</span><b>${g.matches}</b></div><div class="folder-stat"><span>DIFFERENZE</span><b>${g.onlyA.length+g.onlyB.length+g.changed.length}</b></div><div class="folder-stat"><span>SPAZIO POTENZIALE</span><b>${fmt(g.bytes)}</b></div></div><div class="folder-actions"><button class="mini-btn" onclick="toggleDiff('${g.id}')">Esamina differenze</button><button class="mini-btn" onclick="markFolderVerified('${g.id}')">${g.verified?"Struttura verificata":"Verifica struttura"}</button><button class="mini-btn good" onclick="quarantineFolder('${g.id}','a')" ${g.verified&&g.onlyA.length===0&&g.changed.length===0?"":"disabled"}>Mantieni B, quarantena A</button><button class="mini-btn good" onclick="quarantineFolder('${g.id}','b')" ${g.verified&&g.onlyB.length===0&&g.changed.length===0?"":"disabled"}>Mantieni A, quarantena B</button></div><div id="diff-${g.id}" class="diff-box"><b>Solo A:</b> ${g.onlyA.length} file &nbsp; • &nbsp; <b>Solo B:</b> ${g.onlyB.length} file &nbsp; • &nbsp; <b>Stesso percorso ma dimensione diversa:</b> ${g.changed.length}<br><br>${renderDiffPreview(g)}</div></div></article>`).join("")}
-window.toggleDiff=id=>{const el=$("diff-"+id);if(el)el.classList.toggle("open")};
-async function sha256File(fileObj){const buf=await fileObj.arrayBuffer(),digest=await crypto.subtle.digest("SHA-256",buf);return Array.from(new Uint8Array(digest)).map(b=>b.toString(16).padStart(2,"0")).join("")}
-async function verifyGroupInternal(g){const hashes=[];for(const f of g.files)hashes.push(f.fileObj?await sha256File(f.fileObj):(f.demoHash||("demo-"+f.name+"-"+f.size)));g.hashes=Object.fromEntries(g.files.map((f,i)=>[f.id,hashes[i]]));g.identical=hashes.every(h=>h===hashes[0]);g.verified=true}
-window.verifyGroup=async gid=>{const g=state.duplicateGroups.find(x=>x.id===gid);if(!g)return;try{await verifyGroupInternal(g);renderDuplicateGroups()}catch{alert("Verifica hash non riuscita.")}};
-$("verifyAllBtn").onclick=async()=>{if(state.verifyRunning||!state.duplicateGroups.length)return;state.verifyRunning=true;$("verifyAllBtn").disabled=true;const total=state.duplicateGroups.length;let done=0,identical=0,different=0,failed=0;$("verifyPhase").textContent="In corso";for(const g of state.duplicateGroups){try{await verifyGroupInternal(g);if(g.identical)identical++;else different++}catch{failed++}done++;const pct=Math.round(done/total*100);$("verifyProgress").style.width=pct+"%";$("verifyPercent").textContent=pct+"%";$("verifyText").textContent=`${done} / ${total} gruppi • identici ${identical} • diversi ${different} • errori ${failed}`;if(done%5===0){renderDuplicateGroups();await new Promise(r=>setTimeout(r,0))}}$("verifyPhase").textContent="Completata";$("verifyAllBtn").disabled=false;state.verifyRunning=false;renderDuplicateGroups()};
-window.setKeep=(gid,fid)=>{const g=state.duplicateGroups.find(x=>x.id===gid);if(g){g.keepId=fid;renderDuplicateGroups()}};window.quarantineExtras=gid=>{const g=state.duplicateGroups.find(x=>x.id===gid);if(!g||!g.verified||!g.identical)return;g.files.filter(f=>f.id!==g.keepId).map(f=>f.id).forEach(id=>sendToQuarantine(id,true));recalc();updateQ()};window.markFolderVerified=gid=>{const g=state.folderGroups.find(x=>x.id===gid);if(g){g.verified=true;renderFolderGroups()}};window.quarantineFolder=(gid,side)=>{const g=state.folderGroups.find(x=>x.id===gid);if(!g||!g.verified)return;const folder=side==="a"?g.a:g.b,unsafe=side==="a"?(g.onlyA.length||g.changed.length):(g.onlyB.length||g.changed.length);if(unsafe){alert("Questa cartella contiene file unici o differenti. DiskCare non abilita l'azione batch.");return}if(!confirm(`Spostare in Quarantena DiskCare l'intera cartella:\n${folder}\n\nI file resteranno ripristinabili.`))return;state.files.filter(f=>fileIsUnder(f,folder)).map(f=>f.id).forEach(id=>sendToQuarantine(id,true));recalc();updateQ()};
-window.sendToQuarantine=(fid,silent=false)=>{const f=state.files.find(x=>x.id===fid);if(!f)return;if(!silent&&!confirm(`Spostare "${f.name}" in quarantena?`))return;state.quarantine.push({id:"q-"+crypto.randomUUID(),name:f.name,size:f.size,originalPath:f.path,operation:"Pulizia test E:"});state.files=state.files.filter(x=>x.id!==fid);if(!silent){recalc();updateQ()}};$("quarantineResidualsBtn").onclick=()=>{const ids=state.files.filter(isResidualFile).map(f=>f.id);if(!ids.length){alert("Nessun residuo rilevato.");return}if(!confirm(`Spostare ${ids.length} residui in quarantena?`))return;ids.forEach(id=>sendToQuarantine(id,true));recalc();updateQ()};window.focusFile=fid=>{const f=state.files.find(x=>x.id===fid);if(f)alert(`${f.name}\n${f.path}\n\n${advice(f).reason}`)};
-function updateQ(){const n=state.quarantine.length,s=state.quarantine.reduce((a,f)=>a+f.size,0),ops=new Set(state.quarantine.map(f=>f.operation)).size;$("qBadge").textContent=n;$("qCount").textContent=n;$("qSpace").textContent=fmt(s);$("qOps").textContent=ops;$("qCompactText").textContent=`${n} file • ${fmt(s)} • tutto ripristinabile`;renderQ()}
-function renderQ(){let items=[...state.quarantine],q=$("qSearch").value.toLowerCase();if(q)items=items.filter(x=>(x.name+" "+x.originalPath).toLowerCase().includes(q));$("qTableWrap").innerHTML=items.length?`<table><thead><tr><th>File</th><th>Dimensione</th><th>Origine</th><th>Azione</th></tr></thead><tbody>${items.map(x=>`<tr><td>${esc(x.name)}</td><td>${fmt(x.size)}</td><td class="path">${esc(x.originalPath)}</td><td><button class="mini-btn" onclick="restoreItem('${x.id}')">Ripristina</button></td></tr>`).join("")}</tbody></table>`:'<div class="empty-state"><strong>Quarantena vuota</strong></div>'}
-window.restoreItem=qid=>{const i=state.quarantine.findIndex(x=>x.id===qid);if(i<0)return;const q=state.quarantine[i];alert(`Demo: "${q.name}" verrebbe ripristinato in:\n${q.originalPath}`);state.quarantine.splice(i,1);updateQ()};
-function setProgress(p,phase,no,status,speed=0,elapsed="00:00",eta="—"){$("progressBar").style.width=p+"%";$("phaseName").textContent=phase;$("metricPhase").textContent=no;$("statusText").textContent=status;$("metricSpeed").textContent=speed;$("metricElapsed").textContent=elapsed;$("metricEta").textContent=eta}function showSection(sec){document.querySelectorAll(".view").forEach(v=>v.classList.remove("active-view"));(document.getElementById(sec)||$("overview")).classList.add("active-view")}document.querySelectorAll(".nav-item").forEach(b=>b.onclick=()=>{document.querySelectorAll(".nav-item").forEach(x=>x.classList.remove("active"));b.classList.add("active");showSection(b.dataset.section)});$("openQuarantine").onclick=()=>document.querySelector('[data-section="quarantine"]').click();
-async function walk(handle,path,tracker){const out=[];for await(const [name,entry] of handle.entries()){const p=path+"/"+name;if(entry.kind==="file"){try{const file=await entry.getFile(),yrs=(Date.now()-file.lastModified)/(365.25*86400000);out.push({id:crypto.randomUUID(),name:file.name,size:file.size,modified:new Date(file.lastModified).toLocaleDateString("it-IT"),path:p,old:yrs>2,protected:false,fileObj:file});tracker.count++;if(tracker.count%200===0){const sec=Math.max(1,(Date.now()-tracker.start)/1000),spd=Math.round(tracker.count/sec);setProgress(25,"Indicizzazione","2 / 7",`${tracker.count.toLocaleString("it-IT")} file indicizzati`,spd,`${String(Math.floor(sec/60)).padStart(2,"0")}:${String(Math.floor(sec%60)).padStart(2,"0")}`,"calcolo…");await new Promise(r=>setTimeout(r,0))}}catch{}}else out.push(...await walk(entry,p,tracker))}return out}
-$("scanBtn").onclick=async()=>{if(!window.showDirectoryPicker){alert("Usa Chrome o Edge aggiornato.");return}try{setProgress(5,"Preparazione","1 / 7","Scegli una cartella sulla SD E:…");const dir=await showDirectoryPicker({mode:"read"});state.rootName=dir.name;const tr={count:0,start:Date.now()};state.files=await walk(dir,dir.name,tr);setProgress(50,"Classificazione","3 / 7","Classificazione prudente dei file…");await new Promise(r=>setTimeout(r,50));setProgress(63,"Duplicati","4 / 7","Raggruppamento duplicati…");buildDuplicateGroups();await new Promise(r=>setTimeout(r,50));setProgress(78,"Cartelle","5 / 7","Aggregazione degli alberi duplicati…");buildFolderGroups();await new Promise(r=>setTimeout(r,50));setProgress(90,"Priorità","6 / 7","Calcolo priorità per spazio recuperabile…");recalc();setProgress(100,"Completata","7 / 7",`Scansione completata: ${state.files.length.toLocaleString("it-IT")} file.`)}catch(e){if(e.name!=="AbortError")setProgress(0,"Interrotta","0 / 7","Scansione interrotta.")}};
-$("demoBtn").onclick=()=>{state.files=[{id:"1",name:"lezione1.mp3",size:18*1024**2,path:"E:/Corso MLM/SUPERMENTE/Settimana1/lezione1.mp3",old:true,demoHash:"H1"},{id:"2",name:"lezione1.mp3",size:18*1024**2,path:"E:/Backup/SUPERMENTE/Settimana1/lezione1.mp3",old:true,demoHash:"H1"},{id:"3",name:"lezione2.mp3",size:17*1024**2,path:"E:/Corso MLM/SUPERMENTE/Settimana1/lezione2.mp3",old:true,demoHash:"H2"},{id:"4",name:"lezione2.mp3",size:17*1024**2,path:"E:/Backup/SUPERMENTE/Settimana1/lezione2.mp3",old:true,demoHash:"H2"},{id:"5",name:"lezione3.mp3",size:16*1024**2,path:"E:/Corso MLM/SUPERMENTE/Settimana1/lezione3.mp3",old:true,demoHash:"H3"},{id:"6",name:"lezione3.mp3",size:16*1024**2,path:"E:/Backup/SUPERMENTE/Settimana1/lezione3.mp3",old:true,demoHash:"H3"},{id:"7",name:"unico.txt",size:1500,path:"E:/Backup/SUPERMENTE/Settimana1/unico.txt",old:false},{id:"8",name:".DS_Store",size:6144,path:"E:/Corso MLM/SUPERMENTE/.DS_Store",old:true},{id:"9",name:"Thumbs.db",size:65536,path:"E:/Foto/Thumbs.db",old:true},{id:"10",name:"setup_old.exe",size:780*1024**2,path:"E:/Download/setup_old.exe",old:true},{id:"11",name:"foto_2018.jpg",size:4*1024**2,path:"E:/Foto/foto_2018.jpg",old:true},{id:"12",name:"manuale.pdf",size:3*1024**2,path:"E:/Documenti/manuale.pdf",old:true},{id:"13",name:"IndexerVolumeGuid",size:76,path:"E:/System Volume Information/IndexerVolumeGuid",old:true}];recalc();setProgress(100,"Completata","7 / 7","Dati demo E: caricati.",9000,"00:01","0 min")};
-function profileLabel(p){return p==="light"?"Leggera":p==="fast"?"Massima":"Normale";}
-function profilePillLabel(p){return p==="light"?"leggero":p==="fast"?"massimo":"normale";}
-function markPerformanceDirty(){
-  const dirty=state.pendingProfile!==state.profile;
-  $("performanceSavedState").textContent=dirty?"Da salvare":"Salvato";
-  $("performanceSavedState").style.background=dirty?"#4b3b13":"#153c30";
-  $("performanceSavedState").style.color=dirty?"#ffe58f":"#a7ebca";
-  $("performanceSavedLabel").textContent=profileLabel(state.pendingProfile);
-  $("performanceSavedText").textContent=dirty?"Hai cambiato profilo. Premi “Salva impostazione” per mantenerlo alla prossima apertura.":"La scelta salvata verrà riutilizzata alla prossima apertura.";
-}
-function applyProfileUI(p){
-  document.querySelectorAll("[data-profile]").forEach(x=>x.classList.toggle("selected",x.dataset.profile===p));
-  $("profilePill").textContent="Profilo "+profilePillLabel(p);
-}
-function loadSavedPerformance(){
-  const saved=localStorage.getItem("diskcare.performanceProfile");
-  const valid=["light","normal","fast"].includes(saved)?saved:"normal";
-  state.profile=valid;state.pendingProfile=valid;applyProfileUI(valid);markPerformanceDirty();
-}
-document.querySelectorAll("[data-profile]").forEach(b=>b.onclick=()=>{
-  state.pendingProfile=b.dataset.profile;
-  applyProfileUI(state.pendingProfile);
-  markPerformanceDirty();
-});
-$("savePerformanceBtn").onclick=()=>{
-  state.profile=state.pendingProfile;
-  localStorage.setItem("diskcare.performanceProfile",state.profile);
-  applyProfileUI(state.profile);markPerformanceDirty();
-  $("performanceSavedText").textContent=`Profilo ${profileLabel(state.profile)} salvato. Verrà mantenuto alla prossima apertura.`;
+const state={
+  files:[],duplicateGroups:[],folderGroups:[],opportunities:[],selectedOps:new Set(),
+  profile:"normal",pendingProfile:"normal",quarantine:[],rootName:"",rootHandle:null,verifyRunning:false,
+  transfer:{sourceType:null,fileHandles:[],folderHandle:null,destHandle:null}
 };
-$("resetPerformanceBtn").onclick=()=>{
-  state.pendingProfile="normal";
-  applyProfileUI("normal");
-  markPerformanceDirty();
+const $=id=>document.getElementById(id);
+const fmt=b=>{if(!b||b<1)return"0 B";const u=["B","KB","MB","GB","TB"];const i=Math.min(4,Math.floor(Math.log(b)/Math.log(1024)));return(b/1024**i).toFixed(i?1:0)+" "+u[i]};
+const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const norm=p=>String(p||"").replaceAll("\\","/").replace(/\/+/g,"/").replace(/\/$/,"");
+const dirname=p=>{const x=norm(p),i=x.lastIndexOf("/");return i>0?x.slice(0,i):x};
+const basename=p=>norm(p).split("/").pop()||norm(p);
+const ext=n=>{const i=n.lastIndexOf(".");return i>=0?n.slice(i).toLowerCase():""};
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const isMedia=e=>[".jpg",".jpeg",".png",".gif",".webp",".bmp",".mp3",".wav",".flac",".mp4",".mov",".avi",".mkv",".mpeg",".wmv"].includes(e);
+const isDocument=e=>[".pdf",".doc",".docx",".xls",".xlsx",".ppt",".pptx",".txt",".rtf",".odt",".dwg",".dxf",".psd",".ai",".aep"].includes(e);
+const isArchive=e=>[".zip",".rar",".7z",".iso",".tar",".gz"].includes(e);
+const isInstaller=e=>[".exe",".msi",".msix",".appx",".cab",".bin"].includes(e);
+
+function isRecyclePath(path){return norm(path).toLowerCase().includes("/$recycle.bin/")}
+function isProtectedPath(path){
+  const p=norm(path).toLowerCase();
+  return p.includes("/system volume information/")||p.endsWith("/system volume information")||
+    p.includes("/windows/")||p.startsWith("c:/windows")||p.includes("/winsxs/")||
+    p.includes("/program files/")||p.includes("/program files (x86)/")||p.includes("/programdata/")||
+    p.endsWith("/pagefile.sys")||p.endsWith("/hiberfil.sys")||p.endsWith("/swapfile.sys");
+}
+function isResidualFile(f){
+  const n=f.name.toLowerCase(),p=norm(f.path).toLowerCase();
+  if([".ds_store","thumbs.db","desktop.ini","ehthumbs.db"].includes(n))return true;
+  if(n.startsWith("~$")||n.endsWith(".tmp")||n.endsWith(".temp"))return true;
+  return false;
+}
+function isRegenerableCache(f){
+  const p=norm(f.path).toLowerCase();
+  return p.includes("/adobe premiere pro video previews/")||p.includes("/adobe premiere pro audio previews/")||
+    p.includes("/cacheclip/")||p.includes("/media cache/")||p.includes("/code cache/")||
+    (p.includes("/cache/")&&f.old);
+}
+function advice(f){
+  if(isRecyclePath(f.path))return{type:"check",label:"Cestino",reason:"Contenuto già eliminato dall'utente: può liberare spazio, ma va confermato."};
+  if(isProtectedPath(f.path))return{type:"protect",label:"Non toccare",reason:"File o percorso di sistema protetto da DiskCare."};
+  if(isResidualFile(f))return{type:"residual",label:"Residuo sicuro",reason:"Metadato o temporaneo di scarso valore."};
+  if(isRegenerableCache(f))return{type:"quarantine",label:"Cache rigenerabile",reason:"Preview/cache applicativa normalmente rigenerabile; verificare che il progetto non sia in uso."};
+  if(state.duplicateGroups.some(g=>g.files.some(x=>x.id===f.id)))return{type:"check",label:"Duplicato",reason:"Stesso nome e dimensione: richiede verifica del contenuto."};
+  const e=ext(f.name);
+  if(isInstaller(e)&&f.old)return{type:"quarantine",label:"Installer residuo",reason:"Installer vecchio: spesso resta dopo l'installazione."};
+  if(isArchive(e)&&f.old&&f.size>200*1024*1024)return{type:"check",label:"Da verificare",reason:"Archivio vecchio e voluminoso: potrebbe essere un backup."};
+  if((isMedia(e)||isDocument(e))&&f.old)return{type:"keep",label:"Conserva",reason:"L'età da sola non rende inutile un file personale."};
+  if(f.size>1024*1024*1024&&f.old)return{type:"check",label:"Grande da valutare",reason:"File molto grande: verificare utilità senza considerarlo automaticamente recuperabile."};
+  return{type:"keep",label:"Conserva",reason:"Nessun indicatore forte di inutilità."};
+}
+
+function buildDuplicateGroups(){
+  const map={};
+  for(const f of state.files){
+    if(!f.size||isProtectedPath(f.path)||isRecyclePath(f.path))continue;
+    const key=f.name.toLowerCase()+"|"+f.size;
+    (map[key]??=[]).push(f);
+  }
+  state.duplicateGroups=Object.values(map).filter(g=>g.length>1).map((files,i)=>({
+    id:"g"+i,files,verified:false,identical:null,verification:"not-run",keepId:files[0].id
+  }));
+}
+function commonAncestors(path,depth=4){
+  const d=dirname(path),parts=norm(d).split("/"),out=[];
+  for(let up=0;up<Math.min(depth,parts.length-1);up++){
+    const a=parts.slice(0,parts.length-up).join("/");
+    if(a&&a.length>1)out.push(a);
+  }
+  return out;
+}
+function fileIsUnder(f,folder){
+  const p=norm(f.path).toLowerCase(),d=norm(folder).toLowerCase();
+  return p===d||p.startsWith(d+"/");
+}
+function relativeTo(f,folder){
+  const p=norm(f.path),d=norm(folder);
+  return p.toLowerCase().startsWith((d+"/").toLowerCase())?p.slice(d.length+1):basename(p);
+}
+function buildFolderGroups(){
+  const candidates=new Map();
+  for(const g of state.duplicateGroups){
+    const files=g.files.slice(0,10);
+    for(let i=0;i<files.length;i++)for(let j=i+1;j<files.length;j++){
+      const A=commonAncestors(files[i].path,4),B=commonAncestors(files[j].path,4);
+      for(const a of A)for(const b of B){
+        if(a===b)continue;
+        const pair=[a,b].sort(),key=pair[0]+"|||"+pair[1];
+        if(!candidates.has(key))candidates.set(key,{a:pair[0],b:pair[1],matchedIds:new Set()});
+        candidates.get(key).matchedIds.add(g.id);
+      }
+    }
+  }
+  const raw=[];
+  for(const c of candidates.values()){
+    if(c.matchedIds.size<2)continue;
+    const filesA=state.files.filter(f=>fileIsUnder(f,c.a)),filesB=state.files.filter(f=>fileIsUnder(f,c.b));
+    if(!filesA.length||!filesB.length)continue;
+    const mapA=new Map(filesA.map(f=>[relativeTo(f,c.a).toLowerCase(),f])),mapB=new Map(filesB.map(f=>[relativeTo(f,c.b).toLowerCase(),f]));
+    let same=0,sameBytes=0;const onlyA=[],onlyB=[],changed=[],pairs=[];
+    for(const [r,fa] of mapA){
+      if(!mapB.has(r)){onlyA.push(fa);continue}
+      const fb=mapB.get(r);
+      if(fa.size===fb.size){same++;sameBytes+=fa.size;pairs.push([fa,fb,r])}else changed.push([fa,fb,r]);
+    }
+    for(const [r,fb] of mapB)if(!mapA.has(r))onlyB.push(fb);
+    const maxCount=Math.max(filesA.length,filesB.length),pct=maxCount?Math.round((same/maxCount)*1000)/10:0;
+    if(same<2||pct<50)continue;
+    raw.push({a:c.a,b:c.b,countA:filesA.length,countB:filesB.length,matches:same,bytes:sameBytes,pct,onlyA,onlyB,changed,pairs,verified:false,verification:"not-run",consolidated:false});
+  }
+  raw.sort((x,y)=>(y.bytes-x.bytes)||(y.matches-x.matches));
+  const kept=[];
+  for(const r of raw){
+    const nested=kept.some(k=>((r.a.startsWith(k.a+"/")&&r.b.startsWith(k.b+"/"))||(r.a.startsWith(k.b+"/")&&r.b.startsWith(k.a+"/")))&&k.matches>=r.matches*.9);
+    if(!nested)kept.push(r);
+    if(kept.length>=40)break;
+  }
+  state.folderGroups=kept.map((x,i)=>({...x,id:"f"+i}));
+}
+function inAnyFolderGroup(f){
+  return state.folderGroups.some(g=>fileIsUnder(f,g.a)||fileIsUnder(f,g.b));
+}
+function buildOpportunities(){
+  const ops=[],claimed=new Set();
+  for(const fg of state.folderGroups){
+    const ids=new Set();
+    state.duplicateGroups.forEach(g=>g.files.forEach(f=>{if(fileIsUnder(f,fg.a)||fileIsUnder(f,fg.b))ids.add(f.id)}));
+    ids.forEach(id=>claimed.add(id));
+    const verified=fg.verified&&fg.verification==="full";
+    ops.push({id:"folder:"+fg.id,type:"folder",title:"Cartelle/alberi duplicati",subtitle:basename(fg.a)+" ↔ "+basename(fg.b),bytes:fg.bytes,status:verified?"verified":"potential",risk:fg.changed.length?"medium":"low",ref:fg.id});
+  }
+  for(const g of state.duplicateGroups){
+    if(g.files.some(f=>claimed.has(f.id)))continue;
+    const bytes=g.files[0].size*(g.files.length-1);
+    g.files.forEach(f=>claimed.add(f.id));
+    ops.push({id:"dup:"+g.id,type:"duplicate",title:"Duplicato: "+g.files[0].name,subtitle:g.files.length+" copie",bytes,status:g.verified&&g.identical?"verified":"potential",risk:"low",ref:g.id});
+  }
+  for(const f of state.files){
+    if(claimed.has(f.id)||isProtectedPath(f.path))continue;
+    if(isResidualFile(f)){ops.push({id:"res:"+f.id,type:"residual",title:"Residuo sicuro: "+f.name,subtitle:f.path,bytes:f.size,status:"verified",risk:"low",ref:f.id});claimed.add(f.id);continue}
+    if(isRegenerableCache(f)){ops.push({id:"cache:"+f.id,type:"cache",title:"Cache/preview rigenerabile",subtitle:f.path,bytes:f.size,status:"potential",risk:"low",ref:f.id});claimed.add(f.id);continue}
+    if(isRecyclePath(f.path)){ops.push({id:"bin:"+f.id,type:"recycle",title:"Cestino",subtitle:f.path,bytes:f.size,status:"potential",risk:"low",ref:f.id});claimed.add(f.id);continue}
+    if(isInstaller(ext(f.name))&&f.old){ops.push({id:"inst:"+f.id,type:"installer",title:"Installer vecchio",subtitle:f.path,bytes:f.size,status:"potential",risk:"medium",ref:f.id});claimed.add(f.id)}
+  }
+  ops.sort((a,b)=>b.bytes-a.bytes);
+  state.opportunities=ops;
+  for(const id of Array.from(state.selectedOps))if(!ops.some(o=>o.id===id))state.selectedOps.delete(id);
+}
+function opportunityTotals(){
+  let verified=0,potential=0,selected=0;
+  state.opportunities.forEach(o=>{if(o.status==="verified")verified+=o.bytes;else potential+=o.bytes;if(state.selectedOps.has(o.id))selected+=o.bytes});
+  return{verified,potential,selected};
+}
+function recalc(){
+  buildDuplicateGroups();buildFolderGroups();buildOpportunities();
+  const total=state.files.reduce((s,f)=>s+f.size,0),ads=state.files.map(advice),cnt=t=>ads.filter(a=>a.type===t).length,ot=opportunityTotals();
+  $("spaceTotal").textContent=fmt(total);$("verifiedRecover").textContent=fmt(ot.verified);$("potentialRecover").textContent=fmt(ot.potential);$("selectedRecover").textContent=fmt(ot.selected);
+  $("keepCount").textContent=cnt("keep");$("safeCount").textContent=cnt("quarantine")+cnt("residual");$("checkCount").textContent=cnt("check");$("protectCount").textContent=cnt("protect");
+  $("dupBadge").textContent=state.duplicateGroups.length;$("folderBadge").textContent=state.folderGroups.length;$("residualBadge").textContent=cnt("residual");$("reviewBadge").textContent=cnt("check");$("protectBadge").textContent=cnt("protect");$("oppBadge").textContent=state.opportunities.length;
+  renderOpportunities();renderDuplicateGroups();renderFolderGroups();renderResiduals();renderReview();renderProtected();updateQ();
+}
+function renderOpportunities(){
+  const ot=opportunityTotals();$("oppVerified").textContent=fmt(ot.verified);$("oppPotential").textContent=fmt(ot.potential);$("oppSelected").textContent=fmt(ot.selected);$("oppCount").textContent=state.opportunities.length;$("verifiedRecover").textContent=fmt(ot.verified);$("potentialRecover").textContent=fmt(ot.potential);$("selectedRecover").textContent=fmt(ot.selected);
+  const card=o=>{
+    const checked=state.selectedOps.has(o.id),status=o.status==="verified"?"<span class=\"badge verified\">Verificato</span>":"<span class=\"badge potential\">Da verificare</span>";
+    const risk="<span class=\"risk "+o.risk+"\">Rischio "+(o.risk==="low"?"basso":o.risk==="medium"?"medio":"alto")+"</span>";
+    return "<div class=\"opportunity-card\"><div>"+status+"<div>"+risk+"</div></div><div><div class=\"opp-title\">"+esc(o.title)+"</div><div class=\"opp-sub\">"+esc(o.subtitle)+"</div></div><div class=\"opp-space\">"+fmt(o.bytes)+"</div><div class=\"action-row\"><button class=\"mini-btn "+(checked?"good":"")+"\" onclick=\"toggleOpportunity('"+o.id+"')\">"+(checked?"Selezionato":"Seleziona")+"</button><button class=\"mini-btn\" onclick=\"openOpportunity('"+o.id+"')\">Apri</button></div></div>";
+  };
+  $("opportunityWrap").innerHTML=state.opportunities.length?state.opportunities.map(card).join(""):"<div class=\"empty-state\"><strong>Nessuna opportunità</strong></div>";
+  $("topOpportunities").innerHTML=state.opportunities.length?state.opportunities.slice(0,5).map(card).join(""):"<div class=\"empty-state\"><strong>Nessun dato</strong></div>";
+}
+window.toggleOpportunity=id=>{state.selectedOps.has(id)?state.selectedOps.delete(id):state.selectedOps.add(id);renderOpportunities()};
+window.openOpportunity=id=>{const o=state.opportunities.find(x=>x.id===id);if(!o)return;if(o.type==="folder")document.querySelector('[data-section="folders"]').click();else if(o.type==="duplicate")document.querySelector('[data-section="duplicates"]').click();else if(o.type==="residual")document.querySelector('[data-section="residuals"]').click();else document.querySelector('[data-section="review"]').click()};
+$("selectSafeBtn").onclick=()=>{state.opportunities.filter(o=>o.status==="verified"&&o.risk==="low").forEach(o=>state.selectedOps.add(o.id));renderOpportunities()};
+$("clearSelectionBtn").onclick=()=>{state.selectedOps.clear();renderOpportunities()};
+$("openOppBtn").onclick=()=>document.querySelector('[data-section="opportunities"]').click();
+
+function tableBadge(a){const cls=a.type==="quarantine"?"good":a.type;return "<span class=\"badge "+cls+"\">"+esc(a.label)+"</span>"}
+function renderResiduals(){const items=state.files.filter(isResidualFile).sort((a,b)=>b.size-a.size);$("residualWrap").innerHTML=items.length?"<table><thead><tr><th>Tipo</th><th>File</th><th>Dimensione</th><th>Percorso</th><th>Azione</th></tr></thead><tbody>"+items.map(f=>"<tr><td><span class=\"badge residual\">Residuo sicuro</span></td><td>"+esc(f.name)+"</td><td>"+fmt(f.size)+"</td><td class=\"path\">"+esc(f.path)+"</td><td><button class=\"mini-btn good\" onclick=\"sendToQuarantine('"+f.id+"')\">Quarantena</button></td></tr>").join("")+"</tbody></table>":"<div class=\"empty-state\"><strong>Nessun residuo rilevato</strong></div>"}
+function renderReview(){const items=state.files.map(f=>({f,a:advice(f)})).filter(x=>["check","quarantine"].includes(x.a.type)).sort((x,y)=>y.f.size-x.f.size);$("reviewWrap").innerHTML=items.length?"<table><thead><tr><th>Consiglio</th><th>Nome</th><th>Dimensione</th><th>Motivazione</th><th>Azione</th></tr></thead><tbody>"+items.map(x=>"<tr><td>"+tableBadge(x.a)+"</td><td>"+esc(x.f.name)+"<div class=\"path\">"+esc(x.f.path)+"</div></td><td>"+fmt(x.f.size)+"</td><td class=\"reason\">"+esc(x.a.reason)+"</td><td>"+(x.a.type==="quarantine"?"<button class=\"mini-btn good\" onclick=\"sendToQuarantine('"+x.f.id+"')\">Quarantena</button>":"—")+"</td></tr>").join("")+"</tbody></table>":"<div class=\"empty-state\"><strong>Nessun dato</strong></div>"}
+function renderProtected(){const items=state.files.filter(f=>isProtectedPath(f.path)).sort((a,b)=>b.size-a.size);$("protectedWrap").innerHTML=items.length?"<table><thead><tr><th>Stato</th><th>Nome</th><th>Dimensione</th><th>Percorso</th></tr></thead><tbody>"+items.map(f=>"<tr><td><span class=\"badge protect\">Non toccare</span></td><td>"+esc(f.name)+"</td><td>"+fmt(f.size)+"</td><td class=\"path\">"+esc(f.path)+"</td></tr>").join("")+"</tbody></table>":"<div class=\"empty-state\"><strong>Nessun elemento protetto</strong></div>"}
+
+async function hashFile(f){
+  if(f.demoHash)return"demo:"+f.demoHash;
+  if(!f.fileObj)return null;
+  if(f.fileObj.size>512*1024*1024)return null;
+  const buf=await f.fileObj.arrayBuffer(),dig=await crypto.subtle.digest("SHA-256",buf);
+  return Array.from(new Uint8Array(dig)).map(b=>b.toString(16).padStart(2,"0")).join("");
+}
+async function verifyGroup(id){
+  const g=state.duplicateGroups.find(x=>x.id===id);if(!g)return;
+  const hashes=[];
+  for(const f of g.files){const h=await hashFile(f);if(!h){g.verified=false;g.identical=null;g.verification="size-only";renderDuplicateGroups();buildOpportunities();renderOpportunities();return}hashes.push(h)}
+  g.identical=hashes.every(h=>h===hashes[0]);g.verified=true;g.verification="full";buildOpportunities();renderOpportunities();renderDuplicateGroups();
+}
+window.verifyGroup=verifyGroup;
+function renderDuplicateGroups(){
+  const groups=state.duplicateGroups.slice().sort((a,b)=>(b.files[0].size*(b.files.length-1))-(a.files[0].size*(a.files.length-1)));
+  $("duplicateGroupsWrap").innerHTML=groups.length?groups.map(g=>{
+    const rec=g.files[0].size*(g.files.length-1),status=g.verified?(g.identical?"Verificato SHA-256":"Contenuti diversi"):(g.verification==="size-only"?"File troppo grande: verifica completa desktop":"Da verificare");
+    return "<article class=\"duplicate-group\"><div class=\"dup-head\"><div><strong>"+esc(g.files[0].name)+"</strong><span> • "+g.files.length+" copie • recuperabili "+fmt(rec)+"</span></div><span>"+esc(status)+"</span></div><div class=\"dup-files\">"+g.files.map(f=>"<div class=\"dup-file\"><input class=\"radio\" type=\"radio\" name=\"keep-"+g.id+"\" "+(g.keepId===f.id?"checked":"")+" onchange=\"setKeep('"+g.id+"','"+f.id+"')\"><div><div class=\"dup-name\">"+esc(f.name)+"</div><div class=\"dup-path\">"+esc(f.path)+"</div></div><div>"+fmt(f.size)+"</div><div class=\"dup-actions\"><button class=\"mini-btn\" onclick=\"verifyGroup('"+g.id+"')\">Verifica SHA-256</button></div></div>").join("")+"</div></article>";
+  }).join(""):"<div class=\"empty-state\"><strong>Nessun gruppo duplicato</strong></div>";
+}
+window.setKeep=(gid,fid)=>{const g=state.duplicateGroups.find(x=>x.id===gid);if(g)g.keepId=fid};
+$("verifyAllBtn").onclick=async()=>{
+  if(state.verifyRunning)return;state.verifyRunning=true;$("verifyPhase").textContent="In corso";
+  for(let i=0;i<state.duplicateGroups.length;i++){await verifyGroup(state.duplicateGroups[i].id);const p=Math.round((i+1)/Math.max(1,state.duplicateGroups.length)*100);$("verifyProgress").style.width=p+"%";$("verifyPercent").textContent=p+"%";$("verifyText").textContent=(i+1)+" / "+state.duplicateGroups.length+" gruppi";}
+  $("verifyPhase").textContent="Completata";state.verifyRunning=false;buildOpportunities();renderOpportunities();
 };
-$("adviceFilter").onchange=renderAdvice;$("searchInput").oninput=renderAdvice;$("qSearch").oninput=renderQ;$("restoreAllBtn").onclick=()=>{if(state.quarantine.length&&confirm("Ripristinare tutti i file?")){state.quarantine=[];updateQ()}};$("purgeAllBtn").onclick=()=>{if(state.quarantine.length&&confirm("Eliminare definitivamente tutta la quarantena?")){state.quarantine=[];updateQ()}};loadSavedPerformance();updateQ();
+
+async function verifyFolderGroup(id){
+  const g=state.folderGroups.find(x=>x.id===id);if(!g)return;
+  for(const pair of g.pairs){const a=await hashFile(pair[0]),b=await hashFile(pair[1]);if(!a||!b){g.verified=false;g.verification="size-only";renderFolderGroups();return}if(a!==b){g.verified=false;g.verification="mismatch";renderFolderGroups();return}}
+  g.verified=true;g.verification="full";buildOpportunities();renderOpportunities();renderFolderGroups();
+}
+window.verifyFolderGroup=verifyFolderGroup;
+function renderFolderGroups(){
+  $("folderGroupsWrap").innerHTML=state.folderGroups.length?state.folderGroups.map(g=>{
+    const status=g.verified?"Verificata":g.verification==="size-only"?"Richiede desktop per hash grandi":g.verification==="mismatch"?"Differenze di contenuto":"Da verificare";
+    return "<article class=\"folder-card\"><div class=\"folder-head\"><div><strong>"+fmt(g.bytes)+" potenzialmente recuperabili</strong><span> • "+g.pct+"% struttura comune</span></div><span>"+esc(status)+"</span></div><div class=\"folder-body\"><div class=\"folder-compare\"><div class=\"folder-path\">A: "+esc(g.a)+"</div><div class=\"versus\">VS</div><div class=\"folder-path\">B: "+esc(g.b)+"</div></div><div class=\"folder-stats\"><div class=\"folder-stat\"><span>File A</span><b>"+g.countA+"</b></div><div class=\"folder-stat\"><span>File B</span><b>"+g.countB+"</b></div><div class=\"folder-stat\"><span>Uguali</span><b>"+g.matches+"</b></div><div class=\"folder-stat\"><span>Solo A</span><b>"+g.onlyA.length+"</b></div><div class=\"folder-stat\"><span>Solo B</span><b>"+g.onlyB.length+"</b></div><div class=\"folder-stat\"><span>Conflitti</span><b>"+g.changed.length+"</b></div></div><div class=\"folder-actions\"><button class=\"mini-btn\" onclick=\"verifyFolderGroup('"+g.id+"')\">Verifica struttura</button><button class=\"mini-btn good\" onclick=\"consolidateFolder('"+g.id+"','AtoB')\">Copia mancanti A → B</button><button class=\"mini-btn good\" onclick=\"consolidateFolder('"+g.id+"','BtoA')\">Copia mancanti B → A</button></div></div></article>";
+  }).join(""):"<div class=\"empty-state\"><strong>Nessuna cartella candidata</strong></div>";
+}
+
+async function getDirHandleForFolder(folderPath,create){
+  if(!state.rootHandle)throw new Error("Scansione senza permesso cartella");
+  let rel=norm(folderPath);const root=norm(state.rootName);
+  if(rel.toLowerCase()===root.toLowerCase())return state.rootHandle;
+  if(rel.toLowerCase().startsWith(root.toLowerCase()+"/"))rel=rel.slice(root.length+1);
+  let h=state.rootHandle;
+  for(const part of rel.split("/").filter(Boolean))h=await h.getDirectoryHandle(part,{create:!!create});
+  return h;
+}
+async function ensureNestedDir(base,relativeDir){
+  let h=base;
+  for(const part of norm(relativeDir).split("/").filter(Boolean))h=await h.getDirectoryHandle(part,{create:true});
+  return h;
+}
+async function copyFileObjectToDir(fileObj,destDir,name){
+  const fh=await destDir.getFileHandle(name,{create:true}),w=await fh.createWritable();await w.write(fileObj);await w.close();return fh;
+}
+async function verifyFileObjects(a,b){
+  if(a.size!==b.size)return false;
+  if(a.size>512*1024*1024)return null;
+  const ah=await crypto.subtle.digest("SHA-256",await a.arrayBuffer()),bh=await crypto.subtle.digest("SHA-256",await b.arrayBuffer());
+  const A=new Uint8Array(ah),B=new Uint8Array(bh);if(A.length!==B.length)return false;for(let i=0;i<A.length;i++)if(A[i]!==B[i])return false;return true;
+}
+window.consolidateFolder=async(id,dir)=>{
+  const g=state.folderGroups.find(x=>x.id===id);if(!g)return;
+  if(!state.rootHandle){alert("Per consolidare realmente devi prima effettuare una scansione autorizzata, non la demo.");return}
+  const sourceFolder=dir==="AtoB"?g.a:g.b,destFolder=dir==="AtoB"?g.b:g.a,missing=dir==="AtoB"?g.onlyA:g.onlyB;
+  if(g.changed.length){alert("Sono presenti "+g.changed.length+" conflitti: DiskCare non sovrascriverà automaticamente i file diversi.");}
+  try{
+    const destBase=await getDirHandleForFolder(destFolder,true);
+    for(const f of missing){
+      const rel=relativeTo(f,sourceFolder),parts=norm(rel).split("/"),name=parts.pop(),sub=parts.join("/");
+      const dd=await ensureNestedDir(destBase,sub),srcFile=f.fileObj||await f.handle.getFile(),dh=await copyFileObjectToDir(srcFile,dd,name),dstFile=await dh.getFile();
+      const ok=await verifyFileObjects(srcFile,dstFile);if(ok===false)throw new Error("Verifica fallita per "+name);if(ok===null)throw new Error("File >512 MB copiato ma non verificabile integralmente nella PWA: origine mantenuta.");
+    }
+    g.consolidated=true;alert("Consolidamento completato. I file mancanti sono stati copiati e verificati quando possibile. Nessuna origine è stata eliminata.");
+  }catch(e){alert("Consolidamento interrotto: "+e.message)}
+};
+
+function sendToQuarantine(id){
+  const f=state.files.find(x=>x.id===id);if(!f||state.quarantine.some(q=>q.sourceId===id))return;
+  state.quarantine.push({id:crypto.randomUUID(),sourceId:id,name:f.name,size:f.size,originalPath:f.path,when:new Date().toLocaleString("it-IT")});updateQ();
+}
+window.sendToQuarantine=sendToQuarantine;
+function updateQ(){
+  const bytes=state.quarantine.reduce((s,q)=>s+q.size,0);$("qBadge").textContent=state.quarantine.length;$("qCount").textContent=state.quarantine.length;$("qSpace").textContent=fmt(bytes);$("qOps").textContent=state.quarantine.length;$("qCompactText").textContent=state.quarantine.length+" file • "+fmt(bytes)+" • tutto ripristinabile";renderQ();
+}
+function renderQ(){const q=($("qSearch")?.value||"").toLowerCase(),items=state.quarantine.filter(x=>(x.name+" "+x.originalPath).toLowerCase().includes(q));$("qTableWrap").innerHTML=items.length?"<table><thead><tr><th>File</th><th>Spazio</th><th>Origine</th><th>Azione</th></tr></thead><tbody>"+items.map(x=>"<tr><td>"+esc(x.name)+"</td><td>"+fmt(x.size)+"</td><td class=\"path\">"+esc(x.originalPath)+"</td><td><button class=\"mini-btn\" onclick=\"restoreItem('"+x.id+"')\">Ripristina</button></td></tr>").join("")+"</tbody></table>":"<div class=\"empty-state\"><strong>Quarantena vuota</strong></div>"}
+window.restoreItem=id=>{state.quarantine=state.quarantine.filter(x=>x.id!==id);updateQ()};
+
+function setProgress(p,phase,no,status,speed=0,elapsed="00:00",eta="—"){$("progressBar").style.width=p+"%";$("phaseName").textContent=phase;$("metricPhase").textContent=no;$("statusText").textContent=status;$("metricSpeed").textContent=speed;$("metricElapsed").textContent=elapsed;$("metricEta").textContent=eta}
+function showSection(sec){document.querySelectorAll(".view").forEach(v=>v.classList.remove("active-view"));(document.getElementById(sec)||$("overview")).classList.add("active-view")}
+document.querySelectorAll(".nav-item").forEach(b=>b.onclick=()=>{document.querySelectorAll(".nav-item").forEach(x=>x.classList.remove("active"));b.classList.add("active");showSection(b.dataset.section)});
+$("openQuarantine").onclick=()=>document.querySelector('[data-section="quarantine"]').click();
+
+async function walk(handle,path,tracker){
+  const out=[];
+  for await(const [name,entry] of handle.entries()){
+    const p=path+"/"+name;
+    if(entry.kind==="file"){
+      try{
+        const file=await entry.getFile(),yrs=(Date.now()-file.lastModified)/(365.25*86400000);
+        out.push({id:crypto.randomUUID(),name:file.name,size:file.size,modified:new Date(file.lastModified).toLocaleDateString("it-IT"),path:p,old:yrs>2,fileObj:file,handle:entry});
+        tracker.count++;
+        if(tracker.count%200===0){const sec=Math.max(1,(Date.now()-tracker.start)/1000),spd=Math.round(tracker.count/sec);setProgress(25,"Indicizzazione","2 / 7",tracker.count.toLocaleString("it-IT")+" file indicizzati",spd,String(Math.floor(sec/60)).padStart(2,"0")+":"+String(Math.floor(sec%60)).padStart(2,"0"),"calcolo…");await sleep(0)}
+      }catch(e){}
+    }else out.push(...await walk(entry,p,tracker));
+  }
+  return out;
+}
+$("scanBtn").onclick=async()=>{
+  if(!window.showDirectoryPicker){alert("Usa Chrome o Edge aggiornato.");return}
+  try{
+    setProgress(5,"Preparazione","1 / 7","Scegli una cartella da analizzare…");
+    const dir=await showDirectoryPicker({mode:"readwrite"});state.rootName=dir.name;state.rootHandle=dir;
+    const tr={count:0,start:Date.now()};state.files=await walk(dir,dir.name,tr);
+    setProgress(50,"Classificazione","3 / 7","Classificazione prudente…");await sleep(30);
+    setProgress(63,"Duplicati","4 / 7","Raggruppamento duplicati…");buildDuplicateGroups();await sleep(30);
+    setProgress(78,"Cartelle","5 / 7","Aggregazione alberi…");buildFolderGroups();await sleep(30);
+    setProgress(90,"Spazio recuperabile","6 / 7","Calcolo opportunità senza doppi conteggi…");buildOpportunities();recalc();
+    setProgress(100,"Completata","7 / 7","Scansione completata: "+state.files.length.toLocaleString("it-IT")+" file.");
+  }catch(e){if(e.name!=="AbortError")setProgress(0,"Interrotta","0 / 7","Scansione interrotta: "+e.message)}
+};
+
+$("demoBtn").onclick=()=>{
+  const GB=1024**3,MB=1024**2;
+  state.rootName="E:";state.rootHandle=null;
+  state.files=[
+    {id:"p1",name:"Rendered-preview.mov",size:30.34*GB,path:"E:/Progetto/Adobe Premiere Pro Video Previews/Rendered-preview.mov",old:true,demoHash:"PREVIEW"},
+    {id:"f1",name:"juggernautXL_v8Rundiffusion.safetensors",size:6.776*GB,path:"E:/Fooocus_win64_2-5-0/Fooocus/models/checkpoints/juggernautXL_v8Rundiffusion.safetensors",old:true,demoHash:"MODEL"},
+    {id:"f2",name:"config.json",size:220*1024,path:"E:/Fooocus_win64_2-5-0/Fooocus/models/checkpoints/config.json",old:true,demoHash:"CFG"},
+    {id:"f3",name:"notes.txt",size:12000,path:"E:/Fooocus_win64_2-5-0/Fooocus/models/checkpoints/notes.txt",old:true,demoHash:"NOTE"},
+    {id:"g1",name:"juggernautXL_v8Rundiffusion.safetensors",size:6.776*GB,path:"E:/Fooocus_win64_2-5-0 (copy)/Fooocus/models/checkpoints/juggernautXL_v8Rundiffusion.safetensors",old:true,demoHash:"MODEL"},
+    {id:"g2",name:"config.json",size:220*1024,path:"E:/Fooocus_win64_2-5-0 (copy)/Fooocus/models/checkpoints/config.json",old:true,demoHash:"CFG"},
+    {id:"g3",name:"notes.txt",size:12000,path:"E:/Fooocus_win64_2-5-0 (copy)/Fooocus/models/checkpoints/notes.txt",old:true,demoHash:"NOTE"},
+    {id:"v1",name:"2026-06-18 18-37-50.mp4",size:14.025*GB,path:"E:/Videos/2026-06-18 18-37-50.mp4",old:false},
+    {id:"sys1",name:"hiberfil.sys",size:13.876*GB,path:"C:/hiberfil.sys",old:false},
+    {id:"sys2",name:"pagefile.sys",size:7.662*GB,path:"C:/pagefile.sys",old:false},
+    {id:"i1",name:"installer.exe",size:707.24*MB,path:"E:/Downloads/installer.exe",old:true},
+    {id:"r1",name:".DS_Store",size:6144,path:"E:/Foto/.DS_Store",old:true},
+    {id:"b1",name:"old_backup.zip",size:1.2*GB,path:"E:/$Recycle.Bin/old_backup.zip",old:true}
+  ];
+  recalc();setProgress(100,"Completata","7 / 7","Demo basata sui casi emersi dall'analisi reale.",9000,"00:01","0 min");
+};
+
+function profileLabel(p){return p==="light"?"Leggera":p==="fast"?"Massima":"Normale"}
+function profilePillLabel(p){return p==="light"?"leggero":p==="fast"?"massimo":"normale"}
+function markPerformanceDirty(){const dirty=state.pendingProfile!==state.profile;$("performanceSavedState").textContent=dirty?"Da salvare":"Salvato";$("performanceSavedLabel").textContent=profileLabel(state.pendingProfile);$("performanceSavedText").textContent=dirty?"Hai cambiato profilo. Premi Salva impostazione.":"La scelta salvata verrà riutilizzata alla prossima apertura."}
+function applyProfileUI(p){document.querySelectorAll("[data-profile]").forEach(x=>x.classList.toggle("selected",x.dataset.profile===p));$("profilePill").textContent="Profilo "+profilePillLabel(p)}
+function loadSavedPerformance(){const saved=localStorage.getItem("diskcare.performanceProfile"),valid=["light","normal","fast"].includes(saved)?saved:"normal";state.profile=valid;state.pendingProfile=valid;applyProfileUI(valid);markPerformanceDirty()}
+document.querySelectorAll("[data-profile]").forEach(b=>b.onclick=()=>{state.pendingProfile=b.dataset.profile;applyProfileUI(state.pendingProfile);markPerformanceDirty()});
+$("savePerformanceBtn").onclick=()=>{state.profile=state.pendingProfile;localStorage.setItem("diskcare.performanceProfile",state.profile);markPerformanceDirty();$("performanceSavedText").textContent="Profilo "+profileLabel(state.profile)+" salvato."};
+$("resetPerformanceBtn").onclick=()=>{state.pendingProfile="normal";applyProfileUI("normal");markPerformanceDirty()};
+
+function transferLog(msg){const box=$("transferLog");box.textContent+=(box.textContent?"\n":"")+msg;box.scrollTop=box.scrollHeight}
+function setTransferProgress(p,msg){$("transferProgress").style.width=p+"%";$("transferStatus").textContent=msg}
+$("pickFilesBtn").onclick=async()=>{if(!window.showOpenFilePicker){alert("Browser non compatibile.");return}try{const hs=await showOpenFilePicker({multiple:true});state.transfer.sourceType="files";state.transfer.fileHandles=hs;state.transfer.folderHandle=null;let bytes=0;for(const h of hs)bytes+=(await h.getFile()).size;$("transferSourceLabel").textContent=hs.length+" file selezionati";$("transferSourceMeta").textContent=fmt(bytes)+" totali"}catch(e){}};
+$("pickFolderBtn").onclick=async()=>{if(!window.showDirectoryPicker){alert("Browser non compatibile.");return}try{const h=await showDirectoryPicker({mode:"readwrite"});state.transfer.sourceType="folder";state.transfer.folderHandle=h;state.transfer.fileHandles=[];$("transferSourceLabel").textContent=h.name;$("transferSourceMeta").textContent="Cartella autorizzata in lettura/scrittura"}catch(e){}};
+$("pickDestBtn").onclick=async()=>{if(!window.showDirectoryPicker){alert("Browser non compatibile.");return}try{const h=await showDirectoryPicker({mode:"readwrite"});state.transfer.destHandle=h;$("transferDestLabel").textContent=h.name;$("transferDestMeta").textContent="Destinazione autorizzata in scrittura"}catch(e){}};
+$("clearTransferBtn").onclick=()=>{state.transfer={sourceType:null,fileHandles:[],folderHandle:null,destHandle:null};$("transferSourceLabel").textContent="Nessuna origine";$("transferSourceMeta").textContent="Scegli uno o più file oppure una cartella.";$("transferDestLabel").textContent="Nessuna destinazione";$("transferDestMeta").textContent="La destinazione deve essere autorizzata in scrittura.";$("transferLog").textContent="";setTransferProgress(0,"Pronto.")};
+
+async function copyOneHandle(srcHandle,destDir){
+  const src=await srcHandle.getFile();
+  let existing=null;try{existing=await destDir.getFileHandle(src.name);const ef=await existing.getFile();if(ef.size===src.size){const same=await verifyFileObjects(src,ef);if(same===true){transferLog("Già presente e identico: "+src.name);return{copied:false,verified:true,existing:true}}throw new Error("Conflitto: "+src.name+" esiste già con contenuto diverso.")}}catch(e){if(e.name!=="NotFoundError"&&String(e.message||"").startsWith("Conflitto"))throw e}
+  const dh=await copyFileObjectToDir(src,destDir,src.name),dst=await dh.getFile();
+  const doVerify=$("verifyAfterCopy").checked,verified=doVerify?await verifyFileObjects(src,dst):true;
+  if(verified===false)throw new Error("Verifica fallita: "+src.name);
+  if(verified===null)transferLog("Copiato ma hash completo non eseguito (>512 MB): "+src.name);else transferLog("Copiato"+(doVerify?" e verificato":"")+": "+src.name);
+  return{copied:true,verified};
+}
+async function copyFolderRecursive(srcDir,dstDir,counter){
+  for await(const [name,entry] of srcDir.entries()){
+    if(entry.kind==="directory"){const nd=await dstDir.getDirectoryHandle(name,{create:true});await copyFolderRecursive(entry,nd,counter)}
+    else{const r=await copyOneHandle(entry,dstDir);counter.done++;setTransferProgress(Math.min(95,counter.done),"Trasferiti "+counter.done+" file…");if(r.verified===null)counter.unverified++}
+  }
+}
+async function clearFolderContents(dir){
+  const names=[];for await(const [name] of dir.entries())names.push(name);
+  for(const name of names)await dir.removeEntry(name,{recursive:true});
+}
+async function runTransfer(move){
+  const t=state.transfer;if(!t.sourceType||!t.destHandle){alert("Seleziona origine e destinazione.");return}
+  $("transferLog").textContent="";setTransferProgress(2,move?"Spostamento sicuro in preparazione…":"Copia in preparazione…");
+  try{
+    if(t.sourceType==="files"){
+      let allVerified=true;
+      for(let i=0;i<t.fileHandles.length;i++){const h=t.fileHandles[i],r=await copyOneHandle(h,t.destHandle);if(r.verified!==true)allVerified=false;setTransferProgress(Math.round((i+1)/t.fileHandles.length*90),"File "+(i+1)+" / "+t.fileHandles.length)}
+      if(move){
+        let moved=0;
+        if(allVerified){for(const h of t.fileHandles){if(typeof h.move==="function"){await h.move(t.destHandle);moved++}}}
+        if(moved===t.fileHandles.length)transferLog("Origini rimosse dopo verifica.");else transferLog("La PWA non può rimuovere in modo affidabile tutti i file scelti singolarmente: copie verificate mantenendo le origini.");
+      }
+    }else{
+      const target=$("preserveFolderName").checked?await t.destHandle.getDirectoryHandle(t.folderHandle.name,{create:true}):t.destHandle,counter={done:0,unverified:0};
+      await copyFolderRecursive(t.folderHandle,target,counter);
+      if(move&&counter.unverified===0){await clearFolderContents(t.folderHandle);transferLog("Contenuto origine rimosso dopo copia/verifica. La cartella origine vuota può restare visibile.");}
+      else if(move&&counter.unverified>0)transferLog("Origine mantenuta: almeno un file grande non ha ricevuto verifica SHA-256 completa nella PWA.");
+    }
+    setTransferProgress(100,move?"Operazione di spostamento completata in sicurezza.":"Copia completata.");
+  }catch(e){setTransferProgress(0,"Operazione interrotta.");transferLog("ERRORE: "+e.message);alert(e.message)}
+}
+$("copyBtn").onclick=()=>runTransfer(false);$("moveBtn").onclick=()=>runTransfer(true);
+
+$("quarantineResidualsBtn").onclick=()=>{state.files.filter(isResidualFile).forEach(f=>sendToQuarantine(f.id))};
+$("qSearch").oninput=renderQ;$("restoreAllBtn").onclick=()=>{state.quarantine=[];updateQ()};$("purgeAllBtn").onclick=()=>{if(state.quarantine.length&&confirm("Eliminare definitivamente la quarantena simulata?")){state.quarantine=[];updateQ()}};
+loadSavedPerformance();updateQ();
