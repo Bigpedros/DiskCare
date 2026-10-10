@@ -111,9 +111,76 @@
 </section>
 
 <section id="opportunities" class="view">
-  <header class="topbar"><div><h1>Recupera spazio</h1><p>Parti dagli elementi a rischio basso. Apri i dettagli solo quando serve.</p></div><div class="top-actions"><button class="btn primary" id="selectSafeBtn">Seleziona sicure</button><button class="btn ghost" id="clearSelectionBtn">Azzera selezione</button></div></header>
-  <section class="summary-strip"><article><span>Verificato</span><strong id="oppVerified">0 B</strong></article><article><span>Potenziale</span><strong id="oppPotential">0 B</strong></article><article><span>Selezionato</span><strong id="oppSelected">0 B</strong></article><article><span>Opportunità</span><strong id="oppCount">0</strong></article></section>
-  <div id="opportunityWrap"><div class="empty-state"><strong>Nessuna opportunità</strong></div></div>
+  <header class="topbar">
+    <div>
+      <span class="eyebrow">IL TUO DISCO, SPIEGATO SEMPLICEMENTE</span>
+      <h1>Recupera spazio</h1>
+      <p>DiskCare ha già organizzato i risultati per te. Parti dal riepilogo e apri i dettagli solo se vuoi approfondire.</p>
+    </div>
+  </header>
+
+  <section class="plain-explainer">
+    <div class="plain-explainer-icon">i</div>
+    <div><strong>Non devi capire termini tecnici.</strong><span>Qui vedi quanti file e cartelle sono stati trovati, dove ci sono copie e quanto spazio puoi recuperare.</span></div>
+  </section>
+
+  <section class="disk-inventory" aria-label="Riepilogo del disco">
+    <article><span>File analizzati</span><strong id="inventoryFiles">0</strong><small>Tutti i file controllati da DiskCare</small></article>
+    <article><span>Cartelle trovate</span><strong id="inventoryFolders">0</strong><small>Cartelle che contengono i file analizzati</small></article>
+    <article><span>Copie duplicate</span><strong id="inventoryDuplicates">0</strong><small>Copie in più che potrebbero non servire</small></article>
+    <article class="inventory-recover"><span>Spazio recuperabile</span><strong id="inventoryRecover">0 B</strong><small>Stima complessiva prima delle tue scelte</small></article>
+  </section>
+
+  <section class="plain-section-head">
+    <div><span class="eyebrow">COSA HA TROVATO DISKCARE</span><h2>Da dove vuoi iniziare?</h2><p>Ogni gruppo raccoglie elementi dello stesso tipo. Non devi scorrere centinaia di file uno per uno.</p></div>
+  </section>
+
+  <section class="cleanup-categories" id="cleanupCategories">
+    <article class="cleanup-category">
+      <div class="category-icon">≡</div>
+      <div class="category-copy"><h3>File duplicati</h3><p>Copie dello stesso file trovate in punti diversi del disco.</p><div class="category-meta"><strong id="catDupCount">0</strong><span>copie in più</span><b id="catDupBytes">0 B</b></div></div>
+      <button class="btn ghost" onclick="document.querySelector('[data-section=&quot;duplicates&quot;]').click()">Controlla duplicati</button>
+    </article>
+
+    <article class="cleanup-category">
+      <div class="category-icon">▣</div>
+      <div class="category-copy"><h3>Cartelle uguali o molto simili</h3><p>Cartelle che contengono molti degli stessi file e possono essere consolidate.</p><div class="category-meta"><strong id="catFolderCount">0</strong><span>gruppi di cartelle</span><b id="catFolderBytes">0 B</b></div></div>
+      <button class="btn ghost" onclick="document.querySelector('[data-section=&quot;folders&quot;]').click()">Confronta cartelle</button>
+    </article>
+
+    <article class="cleanup-category">
+      <div class="category-icon">↻</div>
+      <div class="category-copy"><h3>File temporanei e ricreabili</h3><p>Anteprime e file di lavoro che i programmi possono normalmente ricreare.</p><div class="category-meta"><strong id="catCacheCount">0</strong><span>elementi</span><b id="catCacheBytes">0 B</b></div></div>
+      <button class="btn ghost" onclick="document.querySelector('[data-section=&quot;review&quot;]').click()">Controlla</button>
+    </article>
+
+    <article class="cleanup-category cleanup-safe">
+      <div class="category-icon">✓</div>
+      <div class="category-copy"><h3>Pulizia già riconosciuta come sicura</h3><p>Piccoli residui e file inutili che DiskCare ha già classificato con rischio basso.</p><div class="category-meta"><strong id="catSafeCount">0</strong><span>elementi</span><b id="catSafeBytes">0 B</b></div></div>
+      <button class="btn primary" id="selectSafeBtn">Seleziona sicuri</button>
+    </article>
+
+    <article class="cleanup-category cleanup-review">
+      <div class="category-icon">?</div>
+      <div class="category-copy"><h3>Da decidere insieme</h3><p>Elementi che potrebbero essere inutili, ma che DiskCare non vuole scegliere al posto tuo.</p><div class="category-meta"><strong id="catReviewCount">0</strong><span>elementi</span><b id="catReviewBytes">0 B</b></div></div>
+      <button class="btn ghost" onclick="document.querySelector('[data-section=&quot;review&quot;]').click()">Fammi vedere</button>
+    </article>
+  </section>
+
+  <section class="selection-summary">
+    <div><span>Hai selezionato</span><strong id="oppSelected">0 B</strong><small>Nulla viene eliminato direttamente: prima passa dalla Quarantena.</small></div>
+    <button class="btn ghost" id="clearSelectionBtn">Azzera selezione</button>
+  </section>
+
+  <details class="technical-details">
+    <summary>Mostra dettagli dei singoli file</summary>
+    <div class="technical-help">Questa parte è facoltativa. Serve solo se vuoi vedere nomi, percorsi e classificazioni uno per uno.</div>
+    <div id="opportunityWrap"><div class="empty-state"><strong>Nessun dettaglio disponibile</strong></div></div>
+  </details>
+
+  <div class="hidden-compat" aria-hidden="true">
+    <span id="oppVerified">0 B</span><span id="oppPotential">0 B</span><span id="oppCount">0</span>
+  </div>
 </section>
 
 <section id="duplicates" class="view">
