@@ -154,8 +154,7 @@ function opportunityTotals(){
 function recalc(){
   buildDuplicateGroups();buildFolderGroups();buildOpportunities();
   const total=state.files.reduce((s,f)=>s+f.size,0),ads=state.files.map(advice),cnt=t=>ads.filter(a=>a.type===t).length,ot=opportunityTotals();
-  $("spaceTotal").textContent=fmt(total);$("verifiedRecover").textContent=fmt(ot.verified);$("potentialRecover").textContent=fmt(ot.potential);$("selectedRecover").textContent=fmt(ot.selected);
-  $("keepCount").textContent=cnt("keep");$("safeCount").textContent=cnt("quarantine")+cnt("residual");$("checkCount").textContent=cnt("check");$("protectCount").textContent=cnt("protect");
+  $("spaceTotal").textContent=fmt(total);$("potentialRecover").textContent=fmt(ot.verified+ot.potential);
   $("dupBadge").textContent=state.duplicateGroups.length;$("folderBadge").textContent=state.folderGroups.length;$("residualBadge").textContent=cnt("residual");$("reviewBadge").textContent=cnt("check");$("protectBadge").textContent=cnt("protect");$("oppBadge").textContent=state.opportunities.length;
   renderOpportunities();renderDuplicateGroups();renderFolderGroups();renderResiduals();renderReview();renderProtected();updateQ();
 }
@@ -165,9 +164,7 @@ function renderOpportunities(){
   $("oppPotential").textContent=fmt(ot.potential);
   $("oppSelected").textContent=fmt(ot.selected);
   $("oppCount").textContent=state.opportunities.length;
-  $("verifiedRecover").textContent=fmt(ot.verified);
-  $("potentialRecover").textContent=fmt(ot.potential);
-  $("selectedRecover").textContent=fmt(ot.selected);
+  $("potentialRecover").textContent=fmt(ot.verified+ot.potential);
 
   const folderSet=new Set();
   state.files.forEach(f=>{const d=dirname(f.path);if(d)folderSet.add(d.toLowerCase())});
@@ -204,7 +201,6 @@ function renderOpportunities(){
     return "<div class=\"opportunity-card\"><div>"+status+"<div>"+risk+"</div></div><div><div class=\"opp-title\">"+esc(o.title)+"</div><div class=\"opp-sub\">"+esc(o.subtitle)+"</div></div><div class=\"opp-space\">"+fmt(o.bytes)+"</div><div class=\"action-row\"><button class=\"mini-btn "+(checked?"good":"")+"\" onclick=\"toggleOpportunity('"+o.id+"')\">"+(checked?"Selezionato":"Seleziona")+"</button><button class=\"mini-btn\" onclick=\"openOpportunity('"+o.id+"')\">Apri</button></div></div>";
   };
   $("opportunityWrap").innerHTML=state.opportunities.length?state.opportunities.map(card).join(""):"<div class=\"empty-state\"><strong>Nessun dettaglio disponibile</strong></div>";
-  $("topOpportunities").innerHTML=state.opportunities.length?state.opportunities.slice(0,5).map(card).join(""):"<div class=\"empty-state\"><strong>Nessun dato</strong></div>";
 }
 window.toggleOpportunity=id=>{state.selectedOps.has(id)?state.selectedOps.delete(id):state.selectedOps.add(id);renderOpportunities()};
 window.openOpportunity=id=>{const o=state.opportunities.find(x=>x.id===id);if(!o)return;if(o.type==="folder")document.querySelector('[data-section="folders"]').click();else if(o.type==="duplicate")document.querySelector('[data-section="duplicates"]').click();else if(o.type==="residual")document.querySelector('[data-section="residuals"]').click();else document.querySelector('[data-section="review"]').click()};
