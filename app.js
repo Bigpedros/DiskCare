@@ -326,14 +326,18 @@ $("demoBtn").onclick=()=>{
   recalc();setProgress(100,"Completata","7 / 7","Demo basata sui casi emersi dall'analisi reale.",9000,"00:01","0 min");
 };
 
-function profileLabel(p){return p==="light"?"Leggera":p==="fast"?"Massima":"Normale"}
-function profilePillLabel(p){return p==="light"?"leggero":p==="fast"?"massimo":"normale"}
+function profileLabel(p){return p==="light"?"Minimo":p==="fast"?"Massimo":"Medio"}
+function profilePillLabel(p){return p==="light"?"minimo":p==="fast"?"massimo":"medio"}
 function markPerformanceDirty(){const dirty=state.pendingProfile!==state.profile;$("performanceSavedState").textContent=dirty?"Da salvare":"Salvato";$("performanceSavedLabel").textContent=profileLabel(state.pendingProfile);$("performanceSavedText").textContent=dirty?"Hai cambiato profilo. Premi Salva impostazione.":"La scelta salvata verrà riutilizzata alla prossima apertura."}
 function applyProfileUI(p){document.querySelectorAll("[data-profile]").forEach(x=>x.classList.toggle("selected",x.dataset.profile===p));$("profilePill").textContent="Profilo "+profilePillLabel(p)}
 function loadSavedPerformance(){const saved=localStorage.getItem("diskcare.performanceProfile"),valid=["light","normal","fast"].includes(saved)?saved:"normal";state.profile=valid;state.pendingProfile=valid;applyProfileUI(valid);markPerformanceDirty()}
 document.querySelectorAll("[data-profile]").forEach(b=>b.onclick=()=>{state.pendingProfile=b.dataset.profile;applyProfileUI(state.pendingProfile);markPerformanceDirty()});
 $("savePerformanceBtn").onclick=()=>{state.profile=state.pendingProfile;localStorage.setItem("diskcare.performanceProfile",state.profile);markPerformanceDirty();$("performanceSavedText").textContent="Profilo "+profileLabel(state.profile)+" salvato."};
 $("resetPerformanceBtn").onclick=()=>{state.pendingProfile="normal";applyProfileUI("normal");markPerformanceDirty()};
+
+function applyTheme(theme){const valid=["payblue","dark","soft","graphite","ocean","warm"],t=valid.includes(theme)?theme:"payblue";document.body.dataset.theme=t;document.querySelectorAll("[data-theme-choice]").forEach(b=>b.classList.toggle("selected",b.dataset.themeChoice===t));const st=$("themeSavedState");if(st)st.textContent="Salvato";return t}
+function loadSavedTheme(){const saved=localStorage.getItem("diskcare.theme")||"payblue";applyTheme(saved)}
+document.querySelectorAll("[data-theme-choice]").forEach(b=>b.onclick=()=>{const t=applyTheme(b.dataset.themeChoice);localStorage.setItem("diskcare.theme",t)});
 
 function transferLog(msg){const box=$("transferLog");box.textContent+=(box.textContent?"\n":"")+msg;box.scrollTop=box.scrollHeight}
 function setTransferProgress(p,msg){$("transferProgress").style.width=p+"%";$("transferStatus").textContent=msg}
@@ -386,4 +390,4 @@ $("copyBtn").onclick=()=>runTransfer(false);$("moveBtn").onclick=()=>runTransfer
 
 $("quarantineResidualsBtn").onclick=()=>{state.files.filter(isResidualFile).forEach(f=>sendToQuarantine(f.id))};
 $("qSearch").oninput=renderQ;$("restoreAllBtn").onclick=()=>{state.quarantine=[];updateQ()};$("purgeAllBtn").onclick=()=>{if(state.quarantine.length&&confirm("Eliminare definitivamente la quarantena simulata?")){state.quarantine=[];updateQ()}};
-loadSavedPerformance();updateQ();
+loadSavedTheme();loadSavedPerformance();updateQ();
