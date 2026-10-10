@@ -38,7 +38,7 @@ function isRegenerableCache(f){
 }
 function advice(f){
   if(isRecyclePath(f.path))return{type:"check",label:"Cestino",reason:"Contenuto già eliminato dall'utente: può liberare spazio, ma va confermato."};
-  if(isProtectedPath(f.path))return{type:"protect",label:"Non toccare",reason:"File o percorso di sistema protetto da DiskCare."};
+  if(isProtectedPath(f.path))return{type:"protect",label:"Area di sistema",reason:"Percorso delicato: DiskCare lo analizza ma non lo considera automaticamente eliminabile."};
   if(isResidualFile(f))return{type:"residual",label:"Residuo sicuro",reason:"Metadato o temporaneo di scarso valore."};
   if(isRegenerableCache(f))return{type:"quarantine",label:"Cache rigenerabile",reason:"Preview/cache applicativa normalmente rigenerabile; verificare che il progetto non sia in uso."};
   if(state.duplicateGroups.some(g=>g.files.some(x=>x.id===f.id)))return{type:"check",label:"Duplicato",reason:"Stesso nome e dimensione: richiede verifica del contenuto."};
@@ -53,7 +53,7 @@ function advice(f){
 function buildDuplicateGroups(){
   const map={};
   for(const f of state.files){
-    if(!f.size||isProtectedPath(f.path)||isRecyclePath(f.path)||state.quarantineExcludedPaths.has(norm(f.path).toLowerCase()))continue;
+    if(!f.size||isRecyclePath(f.path)||state.quarantineExcludedPaths.has(norm(f.path).toLowerCase()))continue;
     const key=f.name.toLowerCase()+"|"+f.size;
     (map[key]??=[]).push(f);
   }
@@ -211,7 +211,7 @@ $("openOppBtn").onclick=()=>document.querySelector('[data-section="opportunities
 function tableBadge(a){const cls=a.type==="quarantine"?"good":a.type;return "<span class=\"badge "+cls+"\">"+esc(a.label)+"</span>"}
 function renderResiduals(){const items=state.files.filter(isResidualFile).sort((a,b)=>b.size-a.size);$("residualWrap").innerHTML=items.length?"<table><thead><tr><th>Tipo</th><th>File</th><th>Dimensione</th><th>Percorso</th><th>Azione</th></tr></thead><tbody>"+items.map(f=>"<tr><td><span class=\"badge residual\">Residuo sicuro</span></td><td>"+esc(f.name)+"</td><td>"+fmt(f.size)+"</td><td class=\"path\">"+esc(f.path)+"</td><td><button class=\"mini-btn good\" onclick=\"sendToQuarantine('"+f.id+"')\">Quarantena</button></td></tr>").join("")+"</tbody></table>":"<div class=\"empty-state\"><strong>Nessun residuo rilevato</strong></div>"}
 function renderReview(){const items=state.files.map(f=>({f,a:advice(f)})).filter(x=>["check","quarantine"].includes(x.a.type)).sort((x,y)=>y.f.size-x.f.size);$("reviewWrap").innerHTML=items.length?"<table><thead><tr><th>Consiglio</th><th>Nome</th><th>Dimensione</th><th>Motivazione</th><th>Azione</th></tr></thead><tbody>"+items.map(x=>"<tr><td>"+tableBadge(x.a)+"</td><td>"+esc(x.f.name)+"<div class=\"path\">"+esc(x.f.path)+"</div></td><td>"+fmt(x.f.size)+"</td><td class=\"reason\">"+esc(x.a.reason)+"</td><td>"+(x.a.type==="quarantine"?"<button class=\"mini-btn good\" onclick=\"sendToQuarantine('"+x.f.id+"')\">Quarantena</button>":"—")+"</td></tr>").join("")+"</tbody></table>":"<div class=\"empty-state\"><strong>Nessun dato</strong></div>"}
-function renderProtected(){const items=state.files.filter(f=>isProtectedPath(f.path)).sort((a,b)=>b.size-a.size);$("protectedWrap").innerHTML=items.length?"<table><thead><tr><th>Stato</th><th>Nome</th><th>Dimensione</th><th>Percorso</th></tr></thead><tbody>"+items.map(f=>"<tr><td><span class=\"badge protect\">Non toccare</span></td><td>"+esc(f.name)+"</td><td>"+fmt(f.size)+"</td><td class=\"path\">"+esc(f.path)+"</td></tr>").join("")+"</tbody></table>":"<div class=\"empty-state\"><strong>Nessun elemento protetto</strong></div>"}
+function renderProtected(){const items=state.files.filter(f=>isProtectedPath(f.path)).sort((a,b)=>b.size-a.size);$("protectedWrap").innerHTML=items.length?"<table><thead><tr><th>Stato</th><th>Nome</th><th>Dimensione</th><th>Percorso</th></tr></thead><tbody>"+items.map(f=>"<tr><td><span class=\"badge protect\">Area di sistema</span></td><td>"+esc(f.name)+"</td><td>"+fmt(f.size)+"</td><td class=\"path\">"+esc(f.path)+"</td></tr>").join("")+"</tbody></table>":"<div class=\"empty-state\"><strong>Nessuna area di sistema rilevata</strong></div>"}
 
 async function hashFile(f){
   if(f.demoHash)return"demo:"+f.demoHash;
@@ -630,7 +630,7 @@ function updateHomeAfterScan(elapsedSeconds=0){
   $("homeCacheBytes").textContent=fmt(bytesOf(cacheOps))+" recuperabili";
   $("homeReviewCount").textContent=reviewItems.toLocaleString("it-IT")+" elementi";
   $("homeKeepText").textContent=keepItems.toLocaleString("it-IT")+" file non richiedono interventi";
-  $("homeProtectedText").textContent=protectedItems.toLocaleString("it-IT")+" file protetti";
+  $("homeProtectedText").textContent=protectedItems.toLocaleString("it-IT")+" elementi in aree di sistema";
   const sec=Math.max(0,Math.round(elapsedSeconds));
   const elapsed=String(Math.floor(sec/60)).padStart(2,"0")+":"+String(sec%60).padStart(2,"0");
   $("statusText").textContent="Analisi completata: "+state.files.length.toLocaleString("it-IT")+" file e "+folders.size.toLocaleString("it-IT")+" cartelle.";
