@@ -37,208 +37,186 @@
 <main class="main">
 <section id="overview" class="view active-view">
   <header class="topbar home-topbar">
-    <div class="title-with-logo"><img src="assets/diskcare-icon.png" class="hero-logo" alt=""><div><span class="eyebrow home-eyebrow">DISKCARE • PULIZIA GUIDATA</span><h1 id="homeTitle">Cosa vuoi fare?</h1><p id="homeSubtitle">Scegli un obiettivo. DiskCare ti guiderà senza cancellare nulla in silenzio.</p></div></div>
-    <div class="top-actions"><button class="btn ghost" id="demoBtn">Prova con dati demo</button></div>
+    <div><span class="eyebrow">DISKCARE • ANALISI GUIDATA</span><h1 id="homeTitle">Scegli il disco da controllare</h1><p id="homeSubtitle">DiskCare analizza, spiega e propone. Tu decidi sempre cosa fare.</p></div>
+    <div class="top-actions"><button class="btn ghost" id="demoBtn">Prova anteprima</button><button class="btn primary" id="scanBtn">Seleziona disco o cartella</button></div>
   </header>
 
-  <section class="welcome-safety">
-    <div class="safety-icon">✓</div>
-    <div><strong>Prima la sicurezza.</strong><span>DiskCare analizza, spiega e verifica. Gli elementi destinati alla pulizia passano prima dalla Quarantena.</span></div>
-  </section>
-
-  <section class="journey-grid">
-    <article class="journey-card journey-primary">
-      <div class="journey-number">1</div>
-      <div class="journey-icon">◔</div>
-      <h2>Recupera spazio</h2>
-      <p>Trova cache, residui e duplicati senza dover interpretare liste tecniche.</p>
-      <button class="btn primary journey-btn" id="scanBtn">Inizia analisi guidata</button>
-    </article>
-    <article class="journey-card">
-      <div class="journey-number">2</div>
-      <div class="journey-icon">≡</div>
-      <h2>Sistema duplicati</h2>
-      <p>Verifica quali copie sono davvero identiche e scegli con calma quale conservare.</p>
-      <button class="btn ghost journey-btn" onclick="document.querySelector('[data-section=&quot;duplicates&quot;]').click()">Controlla duplicati</button>
-    </article>
-    <article class="journey-card">
-      <div class="journey-number">3</div>
-      <div class="journey-icon">⇄</div>
-      <h2>Copia o unisci cartelle</h2>
-      <p>Consolida contenuti tra percorsi o dischi diversi con verifica dopo la copia.</p>
-      <button class="btn ghost journey-btn" onclick="document.querySelector('[data-section=&quot;transfer&quot;]').click()">Copia o unisci</button>
-    </article>
-  </section>
-
-  <section class="guided-flow">
-    <div class="guided-head"><div><span class="eyebrow">COME FUNZIONA</span><h2>Un percorso semplice, sempre reversibile</h2></div><span class="guided-note">Nessuna cancellazione automatica</span></div>
-    <div class="steps-row">
-      <div class="step-card"><b>1</b><span>Analizza</span><small>Scegli il percorso da controllare.</small></div>
-      <div class="step-arrow">→</div>
-      <div class="step-card"><b>2</b><span>Controlla</span><small>DiskCare separa sicuri, dubbi e protetti.</small></div>
-      <div class="step-arrow">→</div>
-      <div class="step-card"><b>3</b><span>Scegli</span><small>Decidi solo dove serve davvero.</small></div>
-      <div class="step-arrow">→</div>
-      <div class="step-card"><b>4</b><span>Quarantena</span><small>Recupera spazio mantenendo una via di ritorno.</small></div>
-    </div>
+  <section class="dc-start-card">
+    <div class="dc-start-icon">◉</div>
+    <div><strong>Da dove vuoi iniziare?</strong><span>Seleziona l'unità o la cartella che vuoi mettere in ordine. La PWA può analizzare soltanto ciò che il browser ti permette di autorizzare.</span></div>
   </section>
 
   <section class="scan-hero compact guided-status">
-    <div class="scan-title-row"><div><span class="eyebrow">STATO ANALISI</span><h2 id="phaseName">Pronto per iniziare</h2></div><span class="profile-pill" id="profilePill">Profilo normale</span></div>
-    <p class="status" id="statusText">Premi “Inizia analisi guidata” oppure usa i dati demo per vedere il flusso.</p>
+    <div class="scan-title-row"><div><span class="eyebrow">STATO ANALISI</span><h2 id="phaseName">Pronto per iniziare</h2></div><span class="profile-pill" id="profilePill">Profilo medio</span></div>
+    <p class="status" id="statusText">Scegli un'unità oppure usa l'anteprima con dati demo.</p>
     <div class="progress-track" data-progress="0%"><div class="progress-bar" id="progressBar"></div></div>
     <div class="scan-meta"><span><b id="metricPhase">0 / 7</b><small>fase</small></span><span><b id="metricSpeed">0</b><small>file/sec</small></span><span><b id="metricElapsed">00:00</b><small>trascorso</small></span><span><b id="metricEta">—</b><small>residuo</small></span></div>
   </section>
 
   <section class="result-overview">
-    <div class="result-title">
-      <div><span class="eyebrow">ANALISI COMPLETATA</span><h2>Ecco cosa abbiamo trovato</h2><p id="scanScopeText">Qui trovi il riepilogo del percorso analizzato.</p></div>
-    </div>
+    <div class="dc-page-heading"><div><span class="eyebrow">ANALISI COMPLETATA</span><h2>Stato del disco</h2><p id="scanScopeText">Ecco come è occupato lo spazio analizzato e dove DiskCare può aiutarti.</p></div><button class="btn ghost" id="changeDiskBtn">Cambia disco</button></div>
 
-    <section class="scan-summary-card">
-      <div><span>Percorso analizzato</span><strong id="homeScanRoot">—</strong></div>
-      <div><span>File</span><strong id="homeFileCount">0</strong></div>
-      <div><span>Cartelle</span><strong id="homeFolderCount">0</strong></div>
-      <div><span>Spazio analizzato</span><strong id="spaceTotal">0 B</strong></div>
-    </section>
+    <section class="dc-home-grid">
+      <article class="dc-disk-card">
+        <div class="dc-card-title"><div><span class="eyebrow">UTILIZZO DEL DISCO</span><h3 id="homeDiskLabel">Unità analizzata</h3></div><strong id="homeScanRoot">—</strong></div>
+        <div class="dc-donut-layout">
+          <div>
+            <div class="dc-donut" id="diskDonut"><div class="dc-donut-hole"><strong id="diskUsed">0 B</strong><span>analizzati</span></div></div>
+            <div class="dc-free-label"><strong id="diskFree">—</strong><span id="diskPct">Distribuzione dello spazio analizzato</span></div>
+          </div>
+          <div class="dc-legend">
+            <button data-cat="system"><i class="c-system"></i><span>Sistema e file protetti</span><b id="catSystemHome">0 B</b><em>›</em></button>
+            <button data-cat="docs"><i class="c-docs"></i><span>Documenti</span><b id="catDocsHome">0 B</b><em>›</em></button>
+            <button data-cat="photos"><i class="c-photos"></i><span>Foto e immagini</span><b id="catPhotosHome">0 B</b><em>›</em></button>
+            <button data-cat="video"><i class="c-video"></i><span>Video</span><b id="catVideoHome">0 B</b><em>›</em></button>
+            <button data-cat="programs"><i class="c-programs"></i><span>Programmi e installer</span><b id="catProgramsHome">0 B</b><em>›</em></button>
+            <button data-cat="archives"><i class="c-archives"></i><span>Archivi e backup</span><b id="catArchivesHome">0 B</b><em>›</em></button>
+            <button data-cat="other"><i class="c-other"></i><span>Altro</span><b id="catOtherHome">0 B</b><em>›</em></button>
+          </div>
+        </div>
+      </article>
 
-    <section class="recover-hero">
-      <span>Spazio potenzialmente recuperabile</span>
-      <strong id="potentialRecover">0 B</strong>
-      <small>È una stima: DiskCare non elimina nulla senza verifica o tua scelta.</small>
-    </section>
-
-    <section class="home-category-grid">
-      <article class="home-category-card">
-        <div class="home-category-icon">≡</div>
-        <div><h3>File duplicati</h3><p>Copie dello stesso file trovate in punti diversi.</p><strong id="homeDupGroups">0 gruppi</strong><span id="homeDupBytes">0 B recuperabili</span></div>
-        <button class="btn ghost" onclick="document.querySelector('[data-section=&quot;duplicates&quot;]').click()">Controlla</button>
-      </article>
-      <article class="home-category-card">
-        <div class="home-category-icon">▣</div>
-        <div><h3>Cartelle uguali o simili</h3><p>Cartelle che contengono molti degli stessi file.</p><strong id="homeFolderGroups">0 gruppi</strong><span id="homeFolderBytes">0 B recuperabili</span></div>
-        <button class="btn ghost" onclick="document.querySelector('[data-section=&quot;folders&quot;]').click()">Confronta</button>
-      </article>
-      <article class="home-category-card">
-        <div class="home-category-icon">↻</div>
-        <div><h3>File temporanei e ricreabili</h3><p>File di lavoro che i programmi possono normalmente ricreare.</p><strong id="homeCacheCount">0 elementi</strong><span id="homeCacheBytes">0 B recuperabili</span></div>
-        <button class="btn ghost" onclick="document.querySelector('[data-section=&quot;opportunities&quot;]').click()">Controlla</button>
-      </article>
-      <article class="home-category-card">
-        <div class="home-category-icon">?</div>
-        <div><h3>Da valutare</h3><p>Elementi per cui DiskCare preferisce chiedere a te.</p><strong id="homeReviewCount">0 elementi</strong><span>Nessuna scelta automatica</span></div>
-        <button class="btn ghost" onclick="document.querySelector('[data-section=&quot;review&quot;]').click()">Fammi vedere</button>
+      <article class="dc-recover-card">
+        <span class="eyebrow">SPAZIO CHE DISKCARE PUÒ AIUTARTI A RECUPERARE</span>
+        <strong class="dc-recover-number" id="potentialRecover">0 B</strong>
+        <button onclick="document.querySelector('[data-section=&quot;duplicates&quot;]').click()"><span>Copie duplicate</span><b id="homeDupBytes">0 B</b><em>›</em></button>
+        <button onclick="document.querySelector('[data-section=&quot;folders&quot;]').click()"><span>Cartelle duplicate o simili</span><b id="homeFolderBytes">0 B</b><em>›</em></button>
+        <button onclick="document.querySelector('[data-section=&quot;transfer&quot;]').click()"><span>File spostabili su altro disco</span><b id="homeMoveBytes">0 B</b><em>›</em></button>
+        <button onclick="document.querySelector('[data-section=&quot;review&quot;]').click()"><span>Elementi da valutare</span><b id="homeReviewBytes">0 B</b><em>›</em></button>
       </article>
     </section>
 
-    <section class="home-plain-summary">
-      <div><strong id="homeKeepText">0 file non richiedono interventi</strong><span id="homeProtectedText">0 file protetti</span></div>
-      <button class="btn primary" id="openOppBtn">Vai a Recupera spazio</button>
+    <section class="dc-insight-grid">
+      <article class="dc-insight warning"><span>Problema principale</span><strong id="homeMainProblem">Analisi in attesa</strong><small id="homeMainProblemText">DiskCare evidenzierà qui l'opportunità più importante.</small></article>
+      <article class="dc-insight advice"><span>Consiglio DiskCare</span><strong id="homeAdvice">Parti dall'azione più semplice e sicura.</strong><small>Puoi sempre aprire i dettagli prima di decidere.</small></article>
     </section>
+
+    <section class="dc-diagnosis"><div class="dc-diagnosis-icon">✓</div><div><strong>Diagnosi</strong><p id="homeDiagnosis">DiskCare sta preparando una spiegazione semplice del contenuto analizzato.</p></div></section>
+    <div class="dc-home-actions"><button class="btn primary dc-big-action" id="openOppBtn">Inizia a recuperare spazio →</button><button class="btn ghost" id="homeShowDetails">Vedi dettagli</button></div>
+
+    <details class="technical-details" id="homeDetails">
+      <summary>Dettagli dell'analisi</summary>
+      <section class="scan-summary-card">
+        <div><span>File</span><strong id="homeFileCount">0</strong></div>
+        <div><span>Cartelle</span><strong id="homeFolderCount">0</strong></div>
+        <div><span>Spazio analizzato</span><strong id="spaceTotal">0 B</strong></div>
+        <div><span>File senza interventi</span><strong id="homeKeepText">0</strong></div>
+      </section>
+      <div class="hidden-compat"><span id="homeDupGroups">0 gruppi</span><span id="homeFolderGroups">0 gruppi</span><span id="homeCacheCount">0 elementi</span><span id="homeCacheBytes">0 B</span><span id="homeReviewCount">0 elementi</span><span id="homeProtectedText">0</span></div>
+    </details>
   </section>
 
   <section class="quarantine-row" id="openQuarantine"><div class="q-icon">↩</div><div class="q-copy"><strong>Quarantena DiskCare</strong><span id="qCompactText">0 file • 0 B • tutto ripristinabile</span></div><button class="text-btn">Apri →</button></section>
 </section>
 
 <section id="opportunities" class="view">
-  <header class="topbar">
-    <div>
-      <span class="eyebrow">IL TUO DISCO, SPIEGATO SEMPLICEMENTE</span>
-      <h1>Recupera spazio</h1>
-      <p>DiskCare ha già organizzato i risultati per te. Parti dal riepilogo e apri i dettagli solo se vuoi approfondire.</p>
-    </div>
-  </header>
+  <header class="topbar"><div><span class="eyebrow">PULIZIA GUIDATA DEL DISCO</span><h1>Recupera spazio</h1><p>DiskCare ha già ordinato i risultati per te. Parti dal problema principale e procedi un passo alla volta.</p></div></header>
 
-  <section class="plain-explainer">
-    <div class="plain-explainer-icon">i</div>
-    <div><strong>Non devi capire termini tecnici.</strong><span>Qui vedi quanti file e cartelle sono stati trovati, dove ci sono copie e quanto spazio puoi recuperare.</span></div>
+  <section class="dc-metric-row">
+    <article><span class="metric-icon danger">●</span><div><small>Spazio recuperabile</small><strong id="inventoryRecover">0 B</strong></div></article>
+    <article><span class="metric-icon warn">!</span><div><small>Problema principale</small><strong id="recoverMainProblem">—</strong></div></article>
+    <article><span class="metric-icon info">≡</span><div><small>Operazioni consigliate</small><strong>4</strong></div></article>
+    <article><span class="metric-icon good">✓</span><div><small>Selezionato</small><strong id="oppSelected">0 B</strong></div></article>
+  </section>
+  <section class="dc-info-strip">ⓘ Non devi capire termini tecnici: DiskCare ti propone prima le azioni <strong>più utili e più sicure.</strong></section>
+
+  <section class="dc-recommend-card">
+    <div class="dc-rec-icon">◎</div>
+    <div class="dc-rec-copy"><span class="dc-pill good">★ Consigliato</span><h2>Ti consigliamo di iniziare da qui</h2><h3 id="recoverRecTitle">Copie duplicate trovate</h3><p id="recoverRecText">DiskCare ordina le opportunità in base a spazio recuperabile, semplicità e rischio.</p><div class="dc-rec-meta"><span>✓ Rischio basso</span><b id="recoverRecBytes">0 B</b><b id="recoverRecCount">0 elementi</b></div></div>
+    <div class="dc-rec-actions"><button class="btn primary" onclick="document.querySelector('[data-section=&quot;duplicates&quot;]').click()">Inizia dai duplicati →</button><button class="btn ghost" id="whyRecommendation">Perché questo consiglio?</button></div>
   </section>
 
-  <section class="disk-inventory" aria-label="Riepilogo del disco">
-    <article><span>File analizzati</span><strong id="inventoryFiles">0</strong><small>Tutti i file controllati da DiskCare</small></article>
-    <article><span>Cartelle trovate</span><strong id="inventoryFolders">0</strong><small>Cartelle che contengono i file analizzati</small></article>
-    <article><span>Copie duplicate</span><strong id="inventoryDuplicates">0</strong><small>Copie in più che potrebbero non servire</small></article>
-    <article class="inventory-recover"><span>Spazio recuperabile</span><strong id="inventoryRecover">0 B</strong><small>Stima complessiva prima delle tue scelte</small></article>
+  <div class="dc-section-title"><h2>Percorso consigliato</h2><p>Ogni passo è ordinato per beneficio e sicurezza.</p></div>
+  <section class="dc-guide-grid">
+    <article><span class="dc-step">1</span><span class="dc-pill good">Rischio basso</span><h3>Controlla copie duplicate</h3><strong id="guideDupBytes">0 B</strong><p>File identici trovati in più posizioni del disco.</p><button class="btn primary" onclick="document.querySelector('[data-section=&quot;duplicates&quot;]').click()">Apri →</button></article>
+    <article><span class="dc-step">2</span><span class="dc-pill warn">Rischio medio</span><h3>Confronta cartelle simili</h3><strong id="guideFolderBytes">0 B</strong><p>Cartelle che sembrano versioni diverse dello stesso progetto.</p><button class="btn primary" onclick="document.querySelector('[data-section=&quot;folders&quot;]').click()">Apri →</button></article>
+    <article><span class="dc-step">3</span><span class="dc-pill good">Rischio basso</span><h3>Sposta file su un altro disco</h3><strong id="guideMoveBytes">0 B</strong><p>Archivi pesanti che puoi spostare per liberare spazio sull'origine.</p><button class="btn primary" onclick="document.querySelector('[data-section=&quot;transfer&quot;]').click()">Apri →</button></article>
+    <article><span class="dc-step">4</span><span class="dc-pill review">Da valutare</span><h3>Valuta elementi da decidere</h3><strong id="guideReviewBytes">0 B</strong><p>Elementi che DiskCare non vuole scegliere al posto tuo.</p><button class="btn primary" onclick="document.querySelector('[data-section=&quot;review&quot;]').click()">Apri →</button></article>
   </section>
 
-  <section class="plain-section-head">
-    <div><span class="eyebrow">COSA HA TROVATO DISKCARE</span><h2>Da dove vuoi iniziare?</h2><p>Ogni gruppo raccoglie elementi dello stesso tipo. Non devi scorrere centinaia di file uno per uno.</p></div>
-  </section>
+  <section class="dc-safe-clean"><div><span class="dc-safe-icon">✓</span></div><div><h2>Pulizia veloce sicura</h2><p>DiskCare ha già riconosciuto <strong id="catSafeBytes">0 B</strong> di temporanei e residui a basso rischio.</p><small>Nulla viene eliminato direttamente: prima passa dalla Quarantena.</small></div><div class="dc-safe-actions"><button class="btn primary" id="selectSafeBtn">Seleziona sicuri →</button><button class="btn ghost" onclick="document.querySelector('[data-section=&quot;residuals&quot;]').click()">Vedi elenco</button></div></section>
 
-  <section class="cleanup-categories" id="cleanupCategories">
-    <article class="cleanup-category">
-      <div class="category-icon">≡</div>
-      <div class="category-copy"><h3>File duplicati</h3><p>Copie dello stesso file trovate in punti diversi del disco.</p><div class="category-meta"><strong id="catDupCount">0</strong><span>copie in più</span><b id="catDupBytes">0 B</b></div></div>
-      <button class="btn ghost" onclick="document.querySelector('[data-section=&quot;duplicates&quot;]').click()">Controlla duplicati</button>
-    </article>
-
-    <article class="cleanup-category">
-      <div class="category-icon">▣</div>
-      <div class="category-copy"><h3>Cartelle uguali o molto simili</h3><p>Cartelle che contengono molti degli stessi file e possono essere consolidate.</p><div class="category-meta"><strong id="catFolderCount">0</strong><span>gruppi di cartelle</span><b id="catFolderBytes">0 B</b></div></div>
-      <button class="btn ghost" onclick="document.querySelector('[data-section=&quot;folders&quot;]').click()">Confronta cartelle</button>
-    </article>
-
-    <article class="cleanup-category">
-      <div class="category-icon">↻</div>
-      <div class="category-copy"><h3>File temporanei e ricreabili</h3><p>Anteprime e file di lavoro che i programmi possono normalmente ricreare.</p><div class="category-meta"><strong id="catCacheCount">0</strong><span>elementi</span><b id="catCacheBytes">0 B</b></div></div>
-      <button class="btn ghost" onclick="document.querySelector('[data-section=&quot;review&quot;]').click()">Controlla</button>
-    </article>
-
-    <article class="cleanup-category cleanup-safe">
-      <div class="category-icon">✓</div>
-      <div class="category-copy"><h3>Pulizia già riconosciuta come sicura</h3><p>Piccoli residui e file inutili che DiskCare ha già classificato con rischio basso.</p><div class="category-meta"><strong id="catSafeCount">0</strong><span>elementi</span><b id="catSafeBytes">0 B</b></div></div>
-      <button class="btn primary" id="selectSafeBtn">Seleziona sicuri</button>
-    </article>
-
-    <article class="cleanup-category cleanup-review">
-      <div class="category-icon">?</div>
-      <div class="category-copy"><h3>Da decidere insieme</h3><p>Elementi che potrebbero essere inutili, ma che DiskCare non vuole scegliere al posto tuo.</p><div class="category-meta"><strong id="catReviewCount">0</strong><span>elementi</span><b id="catReviewBytes">0 B</b></div></div>
-      <button class="btn ghost" onclick="document.querySelector('[data-section=&quot;review&quot;]').click()">Fammi vedere</button>
-    </article>
-  </section>
-
-  <section class="selection-summary">
-    <div><span>Hai selezionato</span><strong id="oppSelected">0 B</strong><small>Nulla viene eliminato direttamente: prima passa dalla Quarantena.</small></div>
-    <button class="btn ghost" id="clearSelectionBtn">Azzera selezione</button>
-  </section>
-
-  <details class="technical-details">
-    <summary>Mostra dettagli dei singoli file</summary>
-    <div class="technical-help">Questa parte è facoltativa. Serve solo se vuoi vedere nomi, percorsi e classificazioni uno per uno.</div>
-    <div id="opportunityWrap"><div class="empty-state"><strong>Nessun dettaglio disponibile</strong></div></div>
-  </details>
+  <details class="technical-details"><summary>Se vuoi approfondire • Mostra dettagli dei singoli file</summary><div class="technical-help">Questa parte è facoltativa.</div><div id="opportunityWrap"><div class="empty-state"><strong>Nessun dettaglio disponibile</strong></div></div></details>
 
   <div class="hidden-compat" aria-hidden="true">
+    <span id="inventoryFiles">0</span><span id="inventoryFolders">0</span><span id="inventoryDuplicates">0</span>
+    <span id="catDupCount">0</span><span id="catDupBytes">0 B</span><span id="catFolderCount">0</span><span id="catFolderBytes">0 B</span>
+    <span id="catCacheCount">0</span><span id="catCacheBytes">0 B</span><span id="catSafeCount">0</span><span id="catReviewCount">0</span><span id="catReviewBytes">0 B</span>
     <span id="oppVerified">0 B</span><span id="oppPotential">0 B</span><span id="oppCount">0</span>
+    <button id="clearSelectionBtn">Azzera</button>
   </div>
 </section>
 
 <section id="duplicates" class="view">
-  <header class="topbar"><div><h1>Duplicati</h1><p>1. Verifica che siano identici → 2. scegli cosa conservare → 3. manda l'altra copia in quarantena.</p></div><div class="top-actions"><button class="btn primary" id="verifyAllBtn">Cerca e verifica duplicati</button></div></header>
-  <section class="scan-hero compact"><div class="scan-title-row"><div><span class="eyebrow">VERIFICA GLOBALE</span><h2 id="verifyPhase">Non avviata</h2></div></div><p class="status" id="verifyText">Se non hai ancora analizzato un percorso, DiskCare ti chiederà prima quale cartella o disco controllare.</p><div class="progress-track" data-progress="0%"><div class="progress-bar" id="verifyProgress"></div></div></section>
-  <section class="notice"><strong>Sicurezza:</strong> DiskCare verifica prima i contenuti. Le copie escluse possono essere messe in quarantena solo dopo la verifica.</section>
+  <header class="topbar"><div><span class="eyebrow">DUPLICATI</span><h1>Controlla copie duplicate</h1><p>DiskCare ti mostra prima le copie identiche più facili da risolvere.</p></div><div class="top-actions"><button class="btn primary" id="verifyAllBtn">Cerca e verifica duplicati</button></div></header>
 
-  <section class="duplicate-section-head">
-    <div><span class="eyebrow">PRIMA LE CARTELLE</span><h2>Cartelle duplicate o molto simili</h2><p>Quando molti duplicati appartengono alle stesse due cartelle, DiskCare li raggruppa per evitare decine di decisioni ripetitive.</p></div>
+  <section class="dc-metric-row">
+    <article><span class="metric-icon info">▣</span><div><small>Copie trovate</small><strong id="dupCopiesMetric">0</strong></div></article>
+    <article><span class="metric-icon danger">●</span><div><small>Spazio recuperabile</small><strong id="dupBytesMetric">0 B</strong></div></article>
+    <article><span class="metric-icon info">✓</span><div><small>Gruppi verificati</small><strong id="dupVerifiedMetric">0</strong></div></article>
+    <article><span class="metric-icon good">✓</span><div><small>Selezionato</small><strong>0 B</strong></div></article>
   </section>
-  <div id="duplicateFolderGroupsWrap"><div class="empty-state"><strong>Nessuna coppia di cartelle rilevata</strong></div></div>
+  <section class="dc-info-strip">ⓘ Non devi confrontare tutto subito: parti dai duplicati già verificati e a basso rischio.</section>
 
-  <section class="duplicate-section-head duplicate-files-head">
-    <div><span class="eyebrow">POI I SINGOLI FILE</span><h2>File duplicati non già raggruppati</h2><p>Qui restano soltanto i duplicati sparsi che non appartengono a una coppia di cartelle candidata.</p></div>
+  <section class="dc-recommend-card">
+    <div class="dc-rec-icon">▤</div><div class="dc-rec-copy"><span class="dc-pill good">★ Consigliato</span><h2>Ti consigliamo di iniziare da qui</h2><h3>Copie duplicate già verificate</h3><p>I file identici al 100% sono il caso più semplice: una sola copia è sufficiente.</p><div class="dc-rec-meta"><span>✓ Rischio basso</span><b id="dupVerifiedBytes">0 B</b><b id="dupGroupMetric">0 gruppi</b></div></div><div class="dc-rec-actions"><button class="btn primary" id="startSafeDuplicates">Inizia dai duplicati sicuri →</button><button class="btn ghost">Perché questo consiglio?</button></div>
   </section>
-  <div id="duplicateGroupsWrap"><div class="empty-state"><strong>Nessun duplicato sparso</strong></div></div>
+
+  <section class="scan-hero compact dc-verify-box"><div class="scan-title-row"><div><span class="eyebrow">VERIFICA GLOBALE</span><h2 id="verifyPhase">Non avviata</h2></div></div><p class="status" id="verifyText">Se non hai ancora analizzato un percorso, DiskCare ti chiederà cosa controllare.</p><div class="progress-track" data-progress="0%"><div class="progress-bar" id="verifyProgress"></div></div></section>
+
+  <div class="dc-section-title"><h2>Percorso guidato</h2><p>Scegli da dove iniziare in base al tipo di duplicati.</p></div>
+  <section class="dc-guide-grid">
+    <article><span class="dc-step">1</span><span class="dc-pill good">Rischio basso</span><h3>Duplicati già verificati</h3><strong id="dupGuideVerified">0 B</strong><p>File identici già controllati da DiskCare.</p><button class="btn primary" onclick="document.getElementById('duplicateGroupsWrap').scrollIntoView({behavior:'smooth'})">Apri →</button></article>
+    <article><span class="dc-step">2</span><span class="dc-pill warn">Rischio medio</span><h3>Duplicati da verificare</h3><strong id="dupGuidePending">0 B</strong><p>File candidati che meritano un rapido controllo.</p><button class="btn primary" id="verifyAllBtnMirror">Verifica →</button></article>
+    <article><span class="dc-step">3</span><span class="dc-pill good">Rischio basso</span><h3>Cartelle con molti duplicati</h3><strong id="dupGuideFolders">0 B</strong><p>Cartelle che contengono molte copie dello stesso contenuto.</p><button class="btn primary" onclick="document.querySelector('[data-section=&quot;folders&quot;]').click()">Apri →</button></article>
+    <article><span class="dc-step">4</span><span class="dc-pill review">Da valutare</span><h3>Casi da controllare</h3><strong id="dupGuideReview">0 B</strong><p>Elementi particolari che richiedono la tua attenzione.</p><button class="btn primary" onclick="document.querySelector('[data-section=&quot;review&quot;]').click()">Apri →</button></article>
+  </section>
+
+  <details class="technical-details dc-details-open"><summary>Cartelle duplicate o molto simili</summary><div id="duplicateFolderGroupsWrap"><div class="empty-state"><strong>Nessuna coppia di cartelle rilevata</strong></div></div></details>
+  <details class="technical-details"><summary>File duplicati non già raggruppati</summary><div id="duplicateGroupsWrap"><div class="empty-state"><strong>Nessun duplicato sparso</strong></div></div></details>
 </section>
 
 <section id="folders" class="view">
-  <header class="topbar"><div><h1>Cartelle simili</h1><p>DiskCare mostra prima le differenze; l'unione avviene solo dopo una tua scelta.</p></div></header>
-  <section class="notice green"><strong>Consolidamento:</strong> puoi copiare i file mancanti A→B o B→A. I conflitti non vengono sovrascritti automaticamente.</section>
+  <header class="topbar"><div><span class="eyebrow">CONFRONTA CARTELLE</span><h1>Confronta cartelle simili</h1><p>Quando due cartelle sembrano lo stesso progetto, DiskCare ti aiuta a capire cosa cambia davvero.</p></div></header>
+  <section class="dc-metric-row">
+    <article><span class="metric-icon info">▣</span><div><small>Coppie di cartelle</small><strong id="folderPairsMetric">0</strong></div></article>
+    <article><span class="metric-icon info">◔</span><div><small>Spazio coinvolto</small><strong id="folderBytesMetric">0 B</strong></div></article>
+    <article><span class="metric-icon good">↔</span><div><small>Stesso progetto probabile</small><strong id="folderLikelyMetric">0</strong></div></article>
+    <article><span class="metric-icon good">✓</span><div><small>Selezionato</small><strong>0 B</strong></div></article>
+  </section>
+  <section class="dc-info-strip">ⓘ Prima capisci la relazione tra le cartelle, poi scegli se mantenere, unire o spostare.</section>
+  <section class="dc-recommend-card"><div class="dc-rec-icon">▣</div><div class="dc-rec-copy"><span class="dc-pill good">★ Consigliato</span><h2>Ti consigliamo di iniziare da qui</h2><h3>Cartelle quasi identiche dello stesso progetto</h3><p>Una cartella spesso contiene tutto ciò che c'è nell'altra, più qualche file aggiuntivo.</p><div class="dc-rec-meta"><span>✓ Rischio basso</span><b id="folderRecBytes">0 B</b><b id="folderRecCount">0 coppie</b></div></div><div class="dc-rec-actions"><button class="btn primary" onclick="document.getElementById('folderGroupsWrap').scrollIntoView({behavior:'smooth'})">Inizia dal confronto guidato →</button><button class="btn ghost">Perché questo consiglio?</button></div></section>
+
+  <div class="dc-section-title"><h2>Percorso guidato</h2><p>Ogni tipo di relazione tra cartelle richiede un approccio diverso.</p></div>
+  <section class="dc-guide-grid">
+    <article><span class="dc-step">1</span><span class="dc-pill good">Rischio basso</span><h3>Stesso progetto</h3><strong id="folderSameBytes">0 B</strong><p>Una cartella contiene quasi tutto ciò che c'è nell'altra.</p><button class="btn primary" onclick="document.getElementById('folderGroupsWrap').scrollIntoView({behavior:'smooth'})">Apri →</button></article>
+    <article><span class="dc-step">2</span><span class="dc-pill warn">Rischio medio</span><h3>Versioni riorganizzate</h3><strong id="folderReorgBytes">0 B</strong><p>Stessi file con nomi o cartelle diversi.</p><button class="btn primary" onclick="document.getElementById('folderGroupsWrap').scrollIntoView({behavior:'smooth'})">Apri →</button></article>
+    <article><span class="dc-step">3</span><span class="dc-pill warn">Rischio medio</span><h3>Da unire con attenzione</h3><strong id="folderCareBytes">0 B</strong><p>File in parte diversi ma probabilmente correlati.</p><button class="btn primary" onclick="document.getElementById('folderGroupsWrap').scrollIntoView({behavior:'smooth'})">Apri →</button></article>
+    <article><span class="dc-step">4</span><span class="dc-pill review">Da valutare</span><h3>Relazione non chiara</h3><strong id="folderUnknownBytes">0 B</strong><p>Struttura o contenuti da controllare meglio.</p><button class="btn primary" onclick="document.getElementById('folderGroupsWrap').scrollIntoView({behavior:'smooth'})">Apri →</button></article>
+  </section>
   <div id="folderGroupsWrap"><div class="empty-state"><strong>Nessuna cartella candidata</strong></div></div>
 </section>
 
 <section id="transfer" class="view">
-  <header class="topbar"><div><span class="eyebrow">COPIA E UNISCI</span><h1>Cosa vuoi fare?</h1><p>Scegli l'operazione. DiskCare ti guiderà passo per passo senza sovrascrivere file diversi in silenzio.</p></div></header>
-
-  <section class="transfer-start-grid" id="transferStart">
+  <header class="topbar"><div><span class="eyebrow">COPIA E UNISCI</span><h1>Sposta file su un altro disco</h1><p>Libera spazio spostando archivi pesanti verso un'altra unità, con verifica prima della rimozione dall'origine.</p></div></header>
+  <section class="dc-metric-row">
+    <article><span class="metric-icon danger">●</span><div><small>Spazio spostabile</small><strong id="moveBytesMetric">0 B</strong></div></article>
+    <article><span class="metric-icon warn">▤</span><div><small>File consigliati</small><strong id="moveCountMetric">0</strong></div></article>
+    <article><span class="metric-icon info">▣</span><div><small>Destinazione</small><strong id="moveDestinationMetric">Da scegliere</strong></div></article>
+    <article><span class="metric-icon good">✓</span><div><small>Selezionato</small><strong>0 B</strong></div></article>
+  </section>
+  <section class="dc-info-strip">ⓘ DiskCare controlla prima la copia. Solo dopo la verifica puoi liberare spazio sul disco origine.</section>
+  <section class="dc-recommend-card"><div class="dc-rec-icon">⇄</div><div class="dc-rec-copy"><span class="dc-pill good">★ Consigliato</span><h2>Ti consigliamo di iniziare da qui</h2><h3>Archivi pesanti spostabili senza rischi</h3><p>Cartelle personali di grandi dimensioni possono essere spostate su un'altra unità senza trasformare DiskCare in un file manager.</p><div class="dc-rec-meta"><span>✓ Rischio basso</span><b id="moveRecBytes">0 B</b><b id="moveRecCount">0 elementi</b></div></div><div class="dc-rec-actions"><button class="btn primary" id="startMoveGuided">Inizia dallo spostamento guidato →</button><button class="btn ghost">Perché questo consiglio?</button></div></section>
+  <div class="dc-section-title"><h2>Percorso guidato</h2><p>Scegli una categoria e sposta in pochi clic gli archivi più pesanti.</p></div>
+  <section class="dc-guide-grid">
+    <article><span class="dc-step">1</span><span class="dc-pill good">Rischio basso</span><h3>Video e archivi</h3><strong id="moveVideoBytes">0 B</strong><p>Video, filmati e archivi compressi di grandi dimensioni.</p><button class="btn primary" id="moveOpenVideo">Apri →</button></article>
+    <article><span class="dc-step">2</span><span class="dc-pill good">Rischio basso</span><h3>Progetti completati</h3><strong id="moveProjectsBytes">0 B</strong><p>Cartelle di lavori e progetti terminati o non più attivi.</p><button class="btn primary" id="moveOpenProjects">Apri →</button></article>
+    <article><span class="dc-step">3</span><span class="dc-pill good">Rischio basso</span><h3>Backup personali</h3><strong id="moveBackupBytes">0 B</strong><p>Backup personali e archivi che possono vivere su un'altra unità.</p><button class="btn primary" id="moveOpenBackup">Apri →</button></article>
+    <article><span class="dc-step">4</span><span class="dc-pill review">Da valutare</span><h3>Altri file da valutare</h3><strong id="moveOtherBytes">0 B</strong><p>Altri file di grandi dimensioni che potresti spostare.</p><button class="btn primary" id="moveOpenOther">Apri →</button></article>
+  </section>
+  <section class="dc-transfer-safety"><strong>1. Copia</strong><span>→</span><strong>2. Verifica integrità</strong><span>→</span><strong>3. Libera spazio sull'origine</strong><small>Se scegli lo stesso disco, lo spazio complessivo non diminuisce.</small></section>
+  <div class="dc-section-title"><h2>Strumenti operativi</h2><p>Qui puoi scegliere l'operazione concreta da eseguire.</p></div>
+<section class="transfer-start-grid" id="transferStart">
     <article class="transfer-start-card">
       <div class="transfer-start-icon">⇄</div>
       <h2>Confronta due cartelle</h2>
@@ -324,7 +302,26 @@
   <section class="panel"><div id="residualWrap" class="table-wrap"><div class="empty-state"><strong>Nessun residuo rilevato</strong></div></div></section>
 </section>
 
-<section id="review" class="view"><header class="topbar"><div><h1>Da valutare</h1><p>File grandi, installer o archivi che meritano una decisione, non una cancellazione automatica.</p></div></header><section class="panel"><div id="reviewWrap" class="table-wrap"><div class="empty-state"><strong>Nessun dato</strong></div></div></section></section>
+<section id="review" class="view">
+  <header class="topbar"><div><span class="eyebrow">PULIZIA GUIDATA DEL DISCO</span><h1>Valuta elementi da decidere</h1><p>Qui DiskCare si ferma e ti chiede una scelta: sono casi in cui serve il tuo giudizio.</p></div></header>
+  <section class="dc-metric-row">
+    <article><span class="metric-icon review">?</span><div><small>Elementi da valutare</small><strong id="reviewCountMetric">0</strong></div></article>
+    <article><span class="metric-icon info">●</span><div><small>Spazio coinvolto</small><strong id="reviewBytesMetric">0 B</strong></div></article>
+    <article><span class="metric-icon warn">!</span><div><small>Casi ambigui</small><strong id="reviewAmbiguousMetric">0</strong></div></article>
+    <article><span class="metric-icon good">✓</span><div><small>Selezionato</small><strong>0 B</strong></div></article>
+  </section>
+  <section class="dc-info-strip">ⓘ DiskCare non decide al posto tuo quando c'è il rischio di togliere qualcosa di importante.</section>
+  <section class="dc-recommend-card"><div class="dc-rec-icon">?</div><div class="dc-rec-copy"><span class="dc-pill review">★ Da valutare</span><h2>Ti consigliamo di iniziare da qui</h2><h3>Elementi che richiedono la tua conferma</h3><p>Download vecchi, installer, backup e documenti ambigui vengono mostrati senza decisioni automatiche.</p><div class="dc-rec-meta"><span>Decisione manuale</span><b id="reviewRecBytes">0 B</b><b id="reviewRecCount">0 elementi</b></div></div><div class="dc-rec-actions"><button class="btn primary" onclick="document.getElementById('reviewWrap').scrollIntoView({behavior:'smooth'})">Inizia dalla revisione guidata →</button><button class="btn ghost">Perché serve la tua scelta?</button></div></section>
+
+  <div class="dc-section-title"><h2>Percorso guidato</h2><p>Esplora le categorie più comuni di elementi da valutare.</p></div>
+  <section class="dc-guide-grid">
+    <article><span class="dc-step">1</span><h3>Download vecchi</h3><strong id="reviewDownloadBytes">0 B</strong><p>File scaricati da tempo che potrebbero non servirti più.</p><button class="btn primary" onclick="document.getElementById('reviewWrap').scrollIntoView({behavior:'smooth'})">Apri →</button></article>
+    <article><span class="dc-step">2</span><h3>Installer e setup</h3><strong id="reviewInstallerBytes">0 B</strong><p>Programmi di installazione già usati in passato.</p><button class="btn primary" onclick="document.getElementById('reviewWrap').scrollIntoView({behavior:'smooth'})">Apri →</button></article>
+    <article><span class="dc-step">3</span><h3>Backup e copie manuali</h3><strong id="reviewBackupBytes">0 B</strong><p>Copie di sicurezza create da te, da verificare.</p><button class="btn primary" onclick="document.getElementById('reviewWrap').scrollIntoView({behavior:'smooth'})">Apri →</button></article>
+    <article><span class="dc-step">4</span><h3>Documenti da controllare</h3><strong id="reviewDocsBytes">0 B</strong><p>Documenti che potrebbero essere obsoleti o duplicati.</p><button class="btn primary" onclick="document.getElementById('reviewWrap').scrollIntoView({behavior:'smooth'})">Apri →</button></article>
+  </section>
+  <section class="dc-review-layout"><div><div class="dc-section-title"><h2>Revisione guidata</h2><p>Scegli cosa fare per ciascun elemento.</p></div><div id="reviewWrap" class="table-wrap"><div class="empty-state"><strong>Nessun dato</strong></div></div></div><aside class="dc-how-decide"><h2>Come decidere</h2><ol><li><b>Se non lo usi da molto tempo, controlla.</b><span>Il fatto che sia vecchio non significa automaticamente che sia inutile.</span></li><li><b>Se è un setup già usato, valuta.</b><span>Spesso può essere riscaricato, ma la scelta resta tua.</span></li><li><b>Se è un backup, verifica prima.</b><span>Potrebbe contenere file importanti.</span></li><li><b>Se hai dubbi, usa la quarantena.</b><span>È la strada più prudente e reversibile.</span></li></ol></aside></section>
+</section>
 
 <section id="protected" class="view"><header class="topbar"><div><h1>Aree di sistema</h1><p>DiskCare le analizza e le mostra, ma le segnala come delicate. Nella PWA non vengono escluse dalla scansione solo perché appartengono a C:, D: o a un percorso di sistema.</p></div></header><section class="notice"><strong>Attenzione:</strong> questa è una segnalazione, non un blocco. Il browser decide quali cartelle puoi autorizzare.</section><section class="panel"><div id="protectedWrap" class="table-wrap"><div class="empty-state"><strong>Nessuna area di sistema rilevata</strong></div></div></section></section>
 
