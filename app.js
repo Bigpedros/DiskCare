@@ -420,10 +420,80 @@ function renderDuplicateGroups(){
     const rec=g.files[0].size*(g.files.length-1),status=g.verified?(g.identical?"Identici verificati":"Contenuti diversi"):(g.verification==="size-only"?"Verifica completa non disponibile per file molto grandi":"Da verificare");
     const verifyAction=!g.verified&&g.verification!=="size-only"?"<button class=\"mini-btn\" onclick=\"verifyGroup('"+g.id+"')\">Verifica contenuto</button>":"";
     const verifiedMark=g.verified&&g.identical?"<span class=\"dup-verified-mark\">✓ Identici verificati</span>":g.verified&&!g.identical?"<span class=\"dup-warning-mark\">⚠ Contenuti diversi</span>":"<span class=\"dup-status-text\">"+esc(status)+"</span>";
-    return "<article class=\"duplicate-group\"><div class=\"dup-head\"><div><strong>"+esc(g.files[0].name)+"</strong><span> • "+g.files.length+" copie • recuperabili "+fmt(rec)+"</span></div><div class=\"dup-head-actions\">"+verifiedMark+verifyAction+"</div></div><div class=\"dup-files\">"+g.files.map(f=>"<div class=\"dup-file\"><input class=\"radio\" type=\"radio\" name=\"keep-"+g.id+"\" "+(g.keepId===f.id?"checked":"")+" onchange=\"setKeep('"+g.id+"','"+f.id+"')\"><div><div class=\"dup-name\">"+esc(f.name)+"</div><div class=\"dup-path\">"+esc(f.path)+"</div></div><div>"+fmt(f.size)+"</div><div class=\"dup-actions\"><button class=\"mini-btn\" onclick=\"previewFile('"+f.id+"')\">Preview</button></div></div>").join("")+"</div></article>";
+    const fileRows=g.files.map((f,i)=>{
+      const chosen=g.keepId===f.id,label=String.fromCharCode(65+i);
+      const quarantineAction=g.verified&&g.identical&&!chosen?"<button class=\"mini-btn danger-soft\" onclick=\"quarantineDuplicateFile('"+g.id+"','"+f.id+"')\">Quarantena</button>":"";
+      return "<div class=\"dup-file actionable "+(chosen?"dup-file-kept":"")+"\">"+
+        "<span class=\"dup-copy-label\">"+label+"</span>"+
+        "<div><div class=\"dup-name\">"+esc(f.name)+(chosen?" <span class=\"keep-mark\">• da conservare</span>":"")+"</div><div class=\"dup-path\">"+esc(f.path)+"</div></div>"+
+        "<div class=\"dup-size\">"+fmt(f.size)+"</div>"+
+        "<div class=\"dup-actions\">"+
+          "<button class=\"mini-btn\" onclick=\"previewFile('"+f.id+"')\">Preview</button>"+
+          "<button class=\"mini-btn "+(chosen?"good":"")+"\" onclick=\"chooseDuplicateKeep('"+g.id+"','"+f.id+"')\">"+(chosen?"Mantieni questa ✓":"Mantieni questa")+"</button>"+
+          "<button class=\"mini-btn\" onclick=\"moveDuplicateFile('"+g.id+"','"+f.id+"')\">Sposta</button>"+
+          quarantineAction+
+        "</div></div>";
+    }).join("");
+    const footer=g.keepId
+      ?"<div class=\"dup-resolution-bar\"><div><strong>Copia da conservare scelta.</strong><span>"+(g.verified&&g.identical?"Puoi mettere tutte le altre copie verificate in quarantena con un solo comando.":"Prima completa la verifica del gruppo per rimuovere copie.")+"</span></div><div class=\"dup-resolution-actions\">"+(g.verified&&g.identical?"<button class=\"mini-btn danger-soft\" onclick=\"quarantineDuplicateOthers('"+g.id+"')\">Quarantena tutte le altre</button>":"")+"<button class=\"mini-btn\" onclick=\"clearDuplicateKeep('"+g.id+"')\">Annulla scelta</button></div></div>"
+      :"";
+    return "<article class=\"duplicate-group\"><div class=\"dup-head\"><div><strong>"+esc(g.files[0].name)+"</strong><span> • "+g.files.length+" copie • recuperabili "+fmt(rec)+"</span></div><div class=\"dup-head-actions\">"+verifiedMark+verifyAction+"</div></div><div class=\"dup-files\">"+fileRows+"</div>"+footer+"</article>";
   }).join(""):"<div class=\"empty-state\"><strong>Nessun duplicato sparso: i duplicati trovati sono già raggruppati per cartella.</strong></div>";
 }
-window.setKeep=(gid,fid)=>{const g=state.duplicateGroups.find(x=>x.id===gid);if(g)g.keepId=fid};
+window.chooseDuplicateKeep=(gid,fid)=>{const g=state.duplicateGroups.find(x=>x.id===gid);if(!g)return;g.keepId=fid;renderDuplicateGroups()};
+window.clearDuplicateKeep=gid=>{const g=state.duplicateGroups.find(x=>x.id===gid);if(!g)return;g.keepId=null;renderDuplicateGroups()};
+window.setKeep=(gid,fid)=>window.chooseDuplicateKeep(gid,fid);
+
+window.quarantineDuplicateFile=async(gid,fid)=>{
+  const g=state.duplicateGroups.find(x=>x.id===gid);if(!g)return;
+  if(!(g.verified&&g.identical)){alert("Prima verifica il contenuto del gruppo.");return}
+  if(g.keepId===fid){alert("Questa è la copia scelta da conservare.");return}
+  const ok=await sendToQuarantine(fid);
+  if(ok){recalc();alert("La copia è stata aggiunta alla Quarantena DiskCare.")}
+};
+window.quarantineDuplicateOthers=async gid=>{
+  const g=state.duplicateGroups.find(x=>x.id===gid);if(!g||!g.keepId)return;
+  if(!(g.verified&&g.identical)){alert("Prima verifica il contenuto del gruppo.");return}
+  if(!await ensureQuarantineDestination())return;
+  let n=0;
+  for(const f of g.files){
+    if(f.id!==g.keepId&&!state.quarantineExcludedPaths.has(norm(f.path).toLowerCase())){
+      const ok=await sendToQuarantine(f.id);if(ok)n++;
+    }
+  }
+  recalc();
+  alert(n+" copie sono state aggiunte alla Quarantena DiskCare.");
+};
+window.moveDuplicateFile=async(gid,fid)=>{
+  const g=state.duplicateGroups.find(x=>x.id===gid),f=state.files.find(x=>x.id===fid);if(!g||!f)return;
+  if(!window.showDirectoryPicker){alert("Per spostare il file usa Chrome o Edge aggiornato.");return}
+  if(!f.handle&&!f.fileObj){alert("Il file non è disponibile per uno spostamento reale in questa sessione.");return}
+  try{
+    const dest=await showDirectoryPicker({mode:"readwrite"});
+    let exists=false;
+    try{await dest.getFileHandle(f.name);exists=true}catch(e){}
+    if(exists){alert("Nella destinazione esiste già un file con lo stesso nome. DiskCare non sovrascrive file in silenzio: scegli un'altra destinazione.");return}
+    const src=f.fileObj||await f.handle.getFile();
+    const dh=await copyFileObjectToDir(src,dest,f.name),dst=await dh.getFile();
+    const verified=await verifyFileObjects(src,dst);
+    if(verified!==true){
+      alert(verified===null?"Il file è stato copiato, ma la PWA non può completare l'hash integrale per questo file molto grande. L'origine viene mantenuta.":"Verifica fallita: l'origine viene mantenuta.");
+      return;
+    }
+    let removed=false;
+    if(state.rootHandle){
+      try{
+        const parent=await getDirHandleForFolder(dirname(f.path),false);
+        await parent.removeEntry(f.name);
+        removed=true;
+      }catch(e){}
+    }
+    f.fileObj=dst;f.handle=dh;f.path=(dest.name||"Destinazione")+"/"+f.name;
+    recalc();
+    if(removed)alert("File spostato e verificato. La copia origine è stata rimossa.");
+    else alert("Copia verificata nella nuova destinazione. Il browser non ha consentito la rimozione automatica dell'origine, che è stata mantenuta.");
+  }catch(e){if(e.name!=="AbortError")alert("Spostamento non completato: "+e.message)}
+};
 window.toggleFolderDuplicateDetails=id=>{const el=$("folderDupDetails-"+id);if(el)el.hidden=!el.hidden};
 window.chooseFolderKeep=(id,side)=>{
   const fg=state.folderGroups.find(x=>x.id===id);if(!fg)return;
