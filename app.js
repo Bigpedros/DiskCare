@@ -115,7 +115,11 @@ function buildFolderGroups(){
     if(!nested)kept.push(r);
     if(kept.length>=40)break;
   }
-  state.folderGroups=kept.map((x,i)=>({...x,id:"f"+i}));
+  const previous=new Map((state.folderGroups||[]).map(g=>[g.a+"|||"+g.b,g]));
+  state.folderGroups=kept.map((x,i)=>{
+    const old=previous.get(x.a+"|||"+x.b);
+    return {...x,id:"f"+i,primarySide:old?.primarySide||null,conflictChoices:old?.conflictChoices||{},copyOnlyA:old?.copyOnlyA||new Set(),copyOnlyB:old?.copyOnlyB||new Set()};
+  });
 }
 function inAnyFolderGroup(f){
   return state.folderGroups.some(g=>fileIsUnder(f,g.a)||fileIsUnder(f,g.b));
@@ -609,16 +613,90 @@ $("verifyAllBtn").onclick=async()=>{
 
 async function verifyFolderGroup(id){
   const g=state.folderGroups.find(x=>x.id===id);if(!g)return;
-  for(const pair of g.pairs){const a=await hashFile(pair[0]),b=await hashFile(pair[1]);if(!a||!b){g.verified=false;g.verification="size-only";renderFolderGroups();return}if(a!==b){g.verified=false;g.verification="mismatch";renderFolderGroups();return}}
-  g.verified=true;g.verification="full";buildOpportunities();renderOpportunities();renderFolderGroups();
+  const confirmed=[],hashConflicts=[],fixedConflicts=g.changed.filter(x=>x[3]!=="hash-mismatch");
+  let bytes=0;
+  for(const pair of g.pairs){
+    const a=await hashFile(pair[0]),b=await hashFile(pair[1]);
+    if(!a||!b){g.verified=false;g.verification="size-only";renderFolderGroups();return}
+    if(a===b){confirmed.push(pair);bytes+=pair[0].size}
+    else hashConflicts.push([pair[0],pair[1],pair[2],"hash-mismatch"]);
+  }
+  g.pairs=confirmed;g.changed=[...fixedConflicts,...hashConflicts];g.matches=confirmed.length;g.bytes=bytes;
+  const maxCount=Math.max(g.countA,g.countB);g.pct=maxCount?Math.round((g.matches/maxCount)*1000)/10:0;
+  g.verified=true;g.verification="full";
+  buildOpportunities();renderOpportunities();renderFolderGroups();updateGuidedExperience();
 }
 window.verifyFolderGroup=verifyFolderGroup;
+function folderPhysicalCount(g){return g.countA+g.countB}
+function folderComparedPairs(g){return g.matches+g.changed.length}
+function renderFolderDifferenceRows(g){
+  const onlyA=g.onlyA.map((f,i)=>"<div class=\"folder-diff-row\"><span class=\"diff-badge only-a\">Solo A</span><div><strong>"+esc(f.name)+"</strong><small>"+esc(f.path)+"</small></div><b>"+fmt(f.size)+"</b><div class=\"folder-diff-actions\"><button class=\"mini-btn\" onclick=\"previewFile('"+f.id+"')\">Preview</button><label><input type=\"checkbox\" onchange=\"setFolderMissingChoice('"+g.id+"','A',"+i+",this.checked)\" "+(g.copyOnlyA?.has(i)?"checked":"")+"> Copia in B</label></div></div>").join("");
+  const onlyB=g.onlyB.map((f,i)=>"<div class=\"folder-diff-row\"><span class=\"diff-badge only-b\">Solo B</span><div><strong>"+esc(f.name)+"</strong><small>"+esc(f.path)+"</small></div><b>"+fmt(f.size)+"</b><div class=\"folder-diff-actions\"><button class=\"mini-btn\" onclick=\"previewFile('"+f.id+"')\">Preview</button><label><input type=\"checkbox\" onchange=\"setFolderMissingChoice('"+g.id+"','B',"+i+",this.checked)\" "+(g.copyOnlyB?.has(i)?"checked":"")+"> Copia in A</label></div></div>").join("");
+  const conflicts=g.changed.map((pair,i)=>{
+    const [a,b,r,why]=pair,choice=g.conflictChoices?.[i]||"";
+    return "<div class=\"folder-conflict-card\"><div class=\"folder-conflict-title\"><div><span class=\"diff-badge conflict\">File diverso</span><strong>"+esc(r||a.name)+"</strong><small>"+(why==="hash-mismatch"?"Stessa dimensione, contenuto diverso":"Dimensione diversa")+"</small></div></div>"+
+      "<div class=\"folder-conflict-sides\">"+
+        "<div class=\"conflict-side "+(choice==="A"?"chosen":"")+"\"><b>A</b><span>"+esc(a.name)+"</span><small>"+fmt(a.size)+" • "+esc(a.path)+"</small><div><button class=\"mini-btn\" onclick=\"previewFile('"+a.id+"')\">Preview A</button><button class=\"mini-btn "+(choice==="A"?"good":"")+"\" onclick=\"chooseFolderConflict('"+g.id+"',"+i+",'A')\">Usa A</button></div></div>"+
+        "<div class=\"conflict-side "+(choice==="B"?"chosen":"")+"\"><b>B</b><span>"+esc(b.name)+"</span><small>"+fmt(b.size)+" • "+esc(b.path)+"</small><div><button class=\"mini-btn\" onclick=\"previewFile('"+b.id+"')\">Preview B</button><button class=\"mini-btn "+(choice==="B"?"good":"")+"\" onclick=\"chooseFolderConflict('"+g.id+"',"+i+",'B')\">Usa B</button></div></div>"+
+      "</div></div>";
+  }).join("");
+  return onlyA+onlyB+conflicts||"<div class=\"empty-state\"><strong>Nessuna differenza da risolvere</strong></div>";
+}
 function renderFolderGroups(){
   $("folderGroupsWrap").innerHTML=state.folderGroups.length?state.folderGroups.map(g=>{
-    const status=g.verified?"Verificata":g.verification==="size-only"?"Richiede desktop per hash grandi":g.verification==="mismatch"?"Differenze di contenuto":"Da verificare";
-    return "<article class=\"folder-card\"><div class=\"folder-head\"><div><strong>"+fmt(g.bytes)+" potenzialmente recuperabili</strong><span> • "+g.pct+"% struttura comune</span></div><span>"+esc(status)+"</span></div><div class=\"folder-body\"><div class=\"folder-compare\"><div class=\"folder-path\">A: "+esc(g.a)+"</div><div class=\"versus\">VS</div><div class=\"folder-path\">B: "+esc(g.b)+"</div></div><div class=\"folder-stats\"><div class=\"folder-stat\"><span>File A</span><b>"+g.countA+"</b></div><div class=\"folder-stat\"><span>File B</span><b>"+g.countB+"</b></div><div class=\"folder-stat\"><span>Uguali</span><b>"+g.matches+"</b></div><div class=\"folder-stat\"><span>Solo A</span><b>"+g.onlyA.length+"</b></div><div class=\"folder-stat\"><span>Solo B</span><b>"+g.onlyB.length+"</b></div><div class=\"folder-stat\"><span>Conflitti</span><b>"+g.changed.length+"</b></div></div><div class=\"folder-actions\"><button class=\"mini-btn\" onclick=\"verifyFolderGroup('"+g.id+"')\">Verifica struttura</button><button class=\"mini-btn good\" onclick=\"consolidateFolder('"+g.id+"','AtoB')\">Copia mancanti A → B</button><button class=\"mini-btn good\" onclick=\"consolidateFolder('"+g.id+"','BtoA')\">Copia mancanti B → A</button></div></div></article>";
+    g.copyOnlyA??=new Set();g.copyOnlyB??=new Set();g.conflictChoices??={};g.primarySide??=null;
+    const status=g.verified?"Verificata":g.verification==="size-only"?"Verifica completa non disponibile per alcuni file grandi":g.verification==="mismatch"?"Differenze di contenuto":"Da verificare";
+    const pairCount=folderComparedPairs(g),physical=folderPhysicalCount(g);
+    const explanation=physical+" file fisici in totale: "+pairCount+" coppie corrispondenti confrontate, di cui "+g.matches+" identiche e "+g.changed.length+" diverse. "+g.onlyA.length+" file esistono solo in A e "+g.onlyB.length+" solo in B.";
+    const verifyButton=!g.verified&&g.verification!=="size-only"?"<button class=\"mini-btn\" onclick=\"verifyFolderGroup('"+g.id+"')\">Verifica contenuto</button>":"";
+    const primaryActions="<button class=\"mini-btn "+(g.primarySide==="A"?"good":"")+"\" onclick=\"chooseFolderPrimary('"+g.id+"','A')\">Mantieni A come principale"+(g.primarySide==="A"?" ✓":"")+"</button><button class=\"mini-btn "+(g.primarySide==="B"?"good":"")+"\" onclick=\"chooseFolderPrimary('"+g.id+"','B')\">Mantieni B come principale"+(g.primarySide==="B"?" ✓":"")+"</button>";
+    const copyA=g.onlyA.length?"<button class=\"mini-btn good\" onclick=\"consolidateFolder('"+g.id+"','AtoB')\">Copia tutti i mancanti A → B ("+g.onlyA.length+")</button>":"";
+    const copyB=g.onlyB.length?"<button class=\"mini-btn good\" onclick=\"consolidateFolder('"+g.id+"','BtoA')\">Copia tutti i mancanti B → A ("+g.onlyB.length+")</button>":"";
+    const resolve=g.primarySide?"<button class=\"mini-btn primary-folder-action\" onclick=\"applyFolderResolution('"+g.id+"')\">Crea cartella unica in "+g.primarySide+"</button>":"";
+    return "<article class=\"folder-card folder-card-guided\">"+
+      "<div class=\"folder-head\"><div><strong>"+fmt(g.bytes)+" di contenuti identici</strong><span> • "+g.pct+"% struttura comune</span></div><span>"+esc(status)+"</span></div>"+
+      "<div class=\"folder-body\">"+
+        "<div class=\"folder-compare\"><div class=\"folder-path "+(g.primarySide==="A"?"folder-primary":"")+"\"><span>A</span>"+esc(g.a)+"</div><div class=\"versus\">VS</div><div class=\"folder-path "+(g.primarySide==="B"?"folder-primary":"")+"\"><span>B</span>"+esc(g.b)+"</div></div>"+
+        "<div class=\"folder-explanation\"><strong>Cosa significa questo confronto?</strong><span>"+esc(explanation)+"</span></div>"+
+        "<div class=\"folder-stats readable-folder-stats\">"+
+          "<div class=\"folder-stat\"><span>File in A</span><b>"+g.countA+"</b></div><div class=\"folder-stat\"><span>File in B</span><b>"+g.countB+"</b></div>"+
+          "<div class=\"folder-stat good-stat\"><span>Coppie identiche</span><b>"+g.matches+"</b></div><div class=\"folder-stat\"><span>Solo in A</span><b>"+g.onlyA.length+"</b></div>"+
+          "<div class=\"folder-stat\"><span>Solo in B</span><b>"+g.onlyB.length+"</b></div><div class=\"folder-stat conflict-stat\"><span>Coppie diverse</span><b>"+g.changed.length+"</b>"+(g.changed.length?"<button class=\"stat-link\" onclick=\"toggleFolderDifferences('"+g.id+"')\">Mostra quali</button>":"")+"</div>"+
+        "</div>"+
+        "<div class=\"folder-actions folder-main-actions\">"+verifyButton+primaryActions+resolve+"</div>"+
+        ((g.onlyA.length||g.onlyB.length)?"<div class=\"folder-actions folder-copy-actions\">"+copyA+copyB+"<button class=\"mini-btn\" onclick=\"toggleFolderDifferences('"+g.id+"')\">Scegli singoli file</button></div>":"")+
+        "<div class=\"folder-differences-panel\" id=\"folderDifferences-"+g.id+"\" hidden><div class=\"folder-differences-head\"><strong>Differenze da decidere</strong><span>Usa Preview per controllare il contenuto. Le scelte servono per creare una cartella principale completa senza modificare l'altra in silenzio.</span></div>"+renderFolderDifferenceRows(g)+"</div>"+
+      "</div></article>";
   }).join(""):"<div class=\"empty-state\"><strong>Nessuna cartella candidata</strong></div>";
 }
+window.toggleFolderDifferences=id=>{const el=$("folderDifferences-"+id);if(el)el.hidden=!el.hidden};
+window.chooseFolderPrimary=(id,side)=>{const g=state.folderGroups.find(x=>x.id===id);if(!g)return;g.primarySide=side;renderFolderGroups()};
+window.chooseFolderConflict=(id,index,side)=>{const g=state.folderGroups.find(x=>x.id===id);if(!g)return;g.conflictChoices??={};g.conflictChoices[index]=side;renderFolderGroups();const el=$("folderDifferences-"+id);if(el)el.hidden=false};
+window.setFolderMissingChoice=(id,side,index,checked)=>{const g=state.folderGroups.find(x=>x.id===id);if(!g)return;const key=side==="A"?"copyOnlyA":"copyOnlyB";g[key]??=new Set();checked?g[key].add(index):g[key].delete(index)};
+async function copyFolderFileInto(sourceFile,sourceFolder,destFolder){
+  const rel=relativeTo(sourceFile,sourceFolder),parts=norm(rel).split("/"),name=parts.pop(),sub=parts.join("/");
+  const destBase=await getDirHandleForFolder(destFolder,true),dd=await ensureNestedDir(destBase,sub),src=sourceFile.fileObj||await sourceFile.handle.getFile(),dh=await copyFileObjectToDir(src,dd,name),dst=await dh.getFile();
+  const ok=await verifyFileObjects(src,dst);if(ok!==true)throw new Error(ok===null?"File copiato ma verifica completa non disponibile per "+name:"Verifica fallita per "+name);
+}
+window.applyFolderResolution=async id=>{
+  const g=state.folderGroups.find(x=>x.id===id);if(!g||!g.primarySide)return;
+  if(!state.rootHandle){alert("Per consolidare realmente devi prima effettuare una scansione autorizzata.");return}
+  const primary=g.primarySide,sourceFolder=primary==="A"?g.b:g.a,destFolder=primary==="A"?g.a:g.b,missing=primary==="A"?g.onlyB:g.onlyA;
+  const unresolved=g.changed.filter((_,i)=>!g.conflictChoices?.[i]);
+  if(unresolved.length){alert("Ci sono "+unresolved.length+" file diversi ancora da decidere. Apri “Mostra quali” e scegli Usa A oppure Usa B.");const el=$("folderDifferences-"+id);if(el)el.hidden=false;return}
+  try{
+    for(const f of missing)await copyFolderFileInto(f,sourceFolder,destFolder);
+    for(let i=0;i<g.changed.length;i++){
+      const [a,b]=g.changed[i],choice=g.conflictChoices[i];
+      if(choice===primary)continue;
+      const src=choice==="A"?a:b,srcFolder=choice==="A"?g.a:g.b;
+      await copyFolderFileInto(src,srcFolder,destFolder);
+    }
+    g.consolidated=true;
+    alert("Cartella principale "+primary+" completata e verificata. L'altra cartella non è stata eliminata: puoi controllarla e decidere in seguito se metterla in quarantena.");
+    recalc();
+  }catch(e){alert("Consolidamento interrotto: "+e.message)}
+};
 
 async function getDirHandleForFolder(folderPath,create){
   if(!state.rootHandle)throw new Error("Scansione senza permesso cartella");
