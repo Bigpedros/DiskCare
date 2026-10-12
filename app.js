@@ -218,6 +218,69 @@ function renderReview(){
 window.prepareSingleMove=id=>{const f=state.files.find(x=>x.id===id);if(!f)return;alert("Anteprima guidata: per spostare questo elemento apri Copia e unisci e scegli la destinazione.")};
 function renderProtected(){const items=state.files.filter(f=>isProtectedPath(f.path)).sort((a,b)=>b.size-a.size);$("protectedWrap").innerHTML=items.length?"<table><thead><tr><th>Stato</th><th>Nome</th><th>Dimensione</th><th>Percorso</th></tr></thead><tbody>"+items.map(f=>"<tr><td><span class=\"badge protect\">Area di sistema</span></td><td>"+esc(f.name)+"</td><td>"+fmt(f.size)+"</td><td class=\"path\">"+esc(f.path)+"</td></tr>").join("")+"</tbody></table>":"<div class=\"empty-state\"><strong>Nessuna area di sistema rilevata</strong></div>"}
 
+let previewObjectUrl=null;
+function closePreview(){
+  const modal=$("previewModal"),body=$("previewBody"),media=$("previewMediaControls");
+  const player=body?.querySelector("video,audio");
+  if(player){try{player.pause();player.currentTime=0}catch(e){}}
+  if(previewObjectUrl){URL.revokeObjectURL(previewObjectUrl);previewObjectUrl=null}
+  if(body)body.innerHTML='<div class="preview-empty">Nessun file aperto.</div>';
+  if(media)media.hidden=true;
+  if(modal)modal.hidden=true;
+}
+function activePreviewMedia(){return $("previewBody")?.querySelector("video,audio")||null}
+function previewKind(file,name){
+  const e=ext(name),t=(file.type||"").toLowerCase();
+  if(t.startsWith("video/")||[".mp4",".webm",".ogg",".mov",".m4v"].includes(e))return"video";
+  if(t.startsWith("audio/")||[".mp3",".wav",".ogg",".m4a",".aac",".flac"].includes(e))return"audio";
+  if(t.startsWith("image/")||[".jpg",".jpeg",".png",".gif",".webp",".bmp",".svg"].includes(e))return"image";
+  if(t==="application/pdf"||e===".pdf")return"pdf";
+  if(t.startsWith("text/")||[".txt",".csv",".json",".xml",".log",".md"].includes(e))return"text";
+  return"unsupported";
+}
+window.previewFile=async id=>{
+  const f=state.files.find(x=>x.id===id);if(!f)return;
+  const modal=$("previewModal"),body=$("previewBody"),controls=$("previewMediaControls");
+  $("previewTitle").textContent=f.name;
+  $("previewMeta").textContent=fmt(f.size)+" • "+f.path;
+  body.innerHTML='<div class="preview-loading">Apertura anteprima…</div>';
+  controls.hidden=true;modal.hidden=false;
+  try{
+    const file=f.fileObj||(f.handle?await f.handle.getFile():null);
+    if(!file){body.innerHTML='<div class="preview-empty"><strong>Anteprima non disponibile.</strong><span>Questo elemento non dispone di un file leggibile nella sessione corrente.</span></div>';return}
+    if(previewObjectUrl)URL.revokeObjectURL(previewObjectUrl);
+    const kind=previewKind(file,f.name);
+    if(kind==="text"){
+      const txt=await file.text();
+      body.innerHTML="<pre class=\"preview-text\">"+esc(txt.slice(0,500000))+(txt.length>500000?"\n\n[Anteprima limitata ai primi 500.000 caratteri]":"")+"</pre>";
+      return;
+    }
+    previewObjectUrl=URL.createObjectURL(file);
+    if(kind==="image"){
+      body.innerHTML="<div class=\"preview-image-wrap\"><img src=\""+previewObjectUrl+"\" alt=\"Anteprima "+esc(f.name)+"\"></div>";return;
+    }
+    if(kind==="pdf"){
+      body.innerHTML="<iframe class=\"preview-pdf\" src=\""+previewObjectUrl+"#toolbar=0&navpanes=0\" title=\"Anteprima PDF\"></iframe>";return;
+    }
+    if(kind==="video"){
+      body.innerHTML="<video class=\"preview-player\" src=\""+previewObjectUrl+"\" controls preload=\"metadata\"></video>";controls.hidden=false;return;
+    }
+    if(kind==="audio"){
+      body.innerHTML="<div class=\"preview-audio-wrap\"><div class=\"preview-audio-icon\">♪</div><audio class=\"preview-player audio\" src=\""+previewObjectUrl+"\" controls preload=\"metadata\"></audio></div>";controls.hidden=false;return;
+    }
+    body.innerHTML='<div class="preview-empty"><strong>Anteprima non disponibile per questo formato.</strong><span>Puoi comunque confrontare nome, percorso, dimensione e stato di verifica senza modificare il file.</span></div>';
+  }catch(e){
+    body.innerHTML='<div class="preview-empty"><strong>Impossibile aprire l\'anteprima.</strong><span>'+esc(e.message||"Errore di lettura")+'</span></div>';
+  }
+};
+$("previewCloseBtn").onclick=closePreview;$("previewCloseFooter").onclick=closePreview;$("previewBackdrop").onclick=closePreview;
+$("previewPlayBtn").onclick=()=>{const p=activePreviewMedia();if(!p)return;if(p.paused){p.play();$("previewPlayBtn").textContent="❚❚ Pausa"}else{p.pause();$("previewPlayBtn").textContent="▶ Play"}};
+$("previewStopBtn").onclick=()=>{const p=activePreviewMedia();if(!p)return;p.pause();p.currentTime=0;$("previewPlayBtn").textContent="▶ Play"};
+$("previewRewindBtn").onclick=()=>{const p=activePreviewMedia();if(p)p.currentTime=Math.max(0,(p.currentTime||0)-10)};
+$("previewForwardBtn").onclick=()=>{const p=activePreviewMedia();if(p)p.currentTime=Math.min(Number.isFinite(p.duration)?p.duration:(p.currentTime||0)+10,(p.currentTime||0)+10)};
+$("previewRate").onchange=()=>{const p=activePreviewMedia();if(p)p.playbackRate=Number($("previewRate").value)||1};
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("previewModal").hidden)closePreview()});
+
 async function hashFile(f){
   if(f.demoHash)return"demo:"+f.demoHash;
   if(!f.fileObj)return null;
@@ -355,7 +418,9 @@ function renderDuplicateGroups(){
   $("duplicateFolderGroupsWrap").innerHTML=state.folderGroups.length?state.folderGroups.map(renderFolderDuplicateCard).join(""):"<div class=\"empty-state\"><strong>Nessuna coppia di cartelle duplicate o simili</strong></div>";
   $("duplicateGroupsWrap").innerHTML=loose.length?loose.map(g=>{
     const rec=g.files[0].size*(g.files.length-1),status=g.verified?(g.identical?"Identici verificati":"Contenuti diversi"):(g.verification==="size-only"?"Verifica completa non disponibile per file molto grandi":"Da verificare");
-    return "<article class=\"duplicate-group\"><div class=\"dup-head\"><div><strong>"+esc(g.files[0].name)+"</strong><span> • "+g.files.length+" copie • recuperabili "+fmt(rec)+"</span></div><span>"+esc(status)+"</span></div><div class=\"dup-files\">"+g.files.map(f=>"<div class=\"dup-file\"><input class=\"radio\" type=\"radio\" name=\"keep-"+g.id+"\" "+(g.keepId===f.id?"checked":"")+" onchange=\"setKeep('"+g.id+"','"+f.id+"')\"><div><div class=\"dup-name\">"+esc(f.name)+"</div><div class=\"dup-path\">"+esc(f.path)+"</div></div><div>"+fmt(f.size)+"</div><div class=\"dup-actions\"><button class=\"mini-btn\" onclick=\"verifyGroup('"+g.id+"')\">Verifica contenuto</button></div></div>").join("")+"</div></article>";
+    const verifyAction=!g.verified&&g.verification!=="size-only"?"<button class=\"mini-btn\" onclick=\"verifyGroup('"+g.id+"')\">Verifica contenuto</button>":"";
+    const verifiedMark=g.verified&&g.identical?"<span class=\"dup-verified-mark\">✓ Identici verificati</span>":g.verified&&!g.identical?"<span class=\"dup-warning-mark\">⚠ Contenuti diversi</span>":"<span class=\"dup-status-text\">"+esc(status)+"</span>";
+    return "<article class=\"duplicate-group\"><div class=\"dup-head\"><div><strong>"+esc(g.files[0].name)+"</strong><span> • "+g.files.length+" copie • recuperabili "+fmt(rec)+"</span></div><div class=\"dup-head-actions\">"+verifiedMark+verifyAction+"</div></div><div class=\"dup-files\">"+g.files.map(f=>"<div class=\"dup-file\"><input class=\"radio\" type=\"radio\" name=\"keep-"+g.id+"\" "+(g.keepId===f.id?"checked":"")+" onchange=\"setKeep('"+g.id+"','"+f.id+"')\"><div><div class=\"dup-name\">"+esc(f.name)+"</div><div class=\"dup-path\">"+esc(f.path)+"</div></div><div>"+fmt(f.size)+"</div><div class=\"dup-actions\"><button class=\"mini-btn\" onclick=\"previewFile('"+f.id+"')\">Preview</button></div></div>").join("")+"</div></article>";
   }).join(""):"<div class=\"empty-state\"><strong>Nessun duplicato sparso: i duplicati trovati sono già raggruppati per cartella.</strong></div>";
 }
 window.setKeep=(gid,fid)=>{const g=state.duplicateGroups.find(x=>x.id===gid);if(g)g.keepId=fid};
