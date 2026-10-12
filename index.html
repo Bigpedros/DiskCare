@@ -404,6 +404,32 @@
   </section>
 </section>
 
+
+<div class="preview-modal" id="previewModal" hidden aria-modal="true" role="dialog" aria-labelledby="previewTitle">
+  <div class="preview-backdrop" id="previewBackdrop"></div>
+  <section class="preview-window">
+    <header class="preview-header">
+      <div><span class="eyebrow">ANTEPRIMA • SOLA LETTURA</span><h2 id="previewTitle">Preview file</h2><p id="previewMeta">—</p></div>
+      <button class="preview-close" id="previewCloseBtn" aria-label="Chiudi anteprima">×</button>
+    </header>
+    <div class="preview-body" id="previewBody"><div class="preview-empty">Nessun file aperto.</div></div>
+    <div class="preview-media-controls" id="previewMediaControls" hidden>
+      <button class="mini-btn" id="previewRewindBtn">↶ -10s</button>
+      <button class="mini-btn primary-preview" id="previewPlayBtn">▶ Play</button>
+      <button class="mini-btn" id="previewStopBtn">■ Stop</button>
+      <button class="mini-btn" id="previewForwardBtn">+10s ↷</button>
+      <label>Velocità
+        <select id="previewRate">
+          <option value="0.5">0,5×</option>
+          <option value="1" selected>1×</option>
+          <option value="1.5">1,5×</option>
+          <option value="2">2×</option>
+        </select>
+      </label>
+    </div>
+    <footer class="preview-footer"><span>Il file viene aperto esclusivamente in visualizzazione. DiskCare non lo modifica e non offre comandi di salvataggio.</span><button class="btn ghost" id="previewCloseFooter">Chiudi</button></footer>
+  </section>
+</div>
 </main></div>
 <script src="app.js"></script>
 <script>if("serviceWorker" in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){});});}</script>
